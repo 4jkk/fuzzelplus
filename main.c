@@ -170,6 +170,7 @@ print_usage(const char *prog_name)
     printf("Options:\n");
     printf("  -o,--output=OUTPUT         output (monitor) to display on (none)\n"
            "  -f,--font=FONT             font name+style in fontconfig format (monospace)\n"
+           "  -D,--dpi-aware=auto|yes|no TODO\n"
            "  -i,--icon-theme=NAME       icon theme name (\"hicolor\")\n"
            "  -I,--no-icons              do not render any icons\n"
            "  -T,--terminal              terminal command to use when launching 'terminal'\n"
@@ -249,6 +250,7 @@ main(int argc, char *const *argv)
     static const struct option longopts[] = {
         {"output"  ,                 required_argument, 0, 'o'},
         {"font",                     required_argument, 0, 'f'},
+        {"dpi-aware",                required_argument, 0, 'D'},
         {"icon-theme",               required_argument, 0, 'i'},
         {"no-icons",                 no_argument,       0, 'I'},
         {"lines",                    required_argument, 0, 'l'},
@@ -276,6 +278,7 @@ main(int argc, char *const *argv)
     const char *font_name = "monospace";
     const char *icon_theme = "hicolor";
     const char *terminal = NULL;
+    const char *dpi_aware = "yes";
     bool dmenu_mode = false;
     bool no_run_if_empty = false;
     bool icons_enabled = true;
@@ -296,7 +299,7 @@ main(int argc, char *const *argv)
     };
 
     while (true) {
-        int c = getopt_long(argc, argv, ":o:f:i:Il:w:x:y:b:t:m:s:B:r:C:T:dRvh", longopts, NULL);
+        int c = getopt_long(argc, argv, ":o:f:D:i:Il:w:x:y:b:t:m:s:B:r:C:T:dRvh", longopts, NULL);
         if (c == -1)
             break;
 
@@ -307,6 +310,10 @@ main(int argc, char *const *argv)
 
         case 'f':
             font_name = optarg;
+            break;
+
+        case 'D':
+            dpi_aware = optarg;
             break;
 
         case 'i':
@@ -512,7 +519,7 @@ main(int argc, char *const *argv)
     if ((wayl = wayl_init(
              fdm, render, prompt, matches, &render_options,
              dmenu_mode, output_name, font_name,
-             &font_reloaded, &font_reloaded_data)) == NULL)
+             &font_reloaded, &font_reloaded_data, dpi_aware)) == NULL)
         goto out;
 
     matches_max_matches_set(matches, render_options.lines);

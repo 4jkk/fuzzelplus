@@ -148,6 +148,7 @@ struct wayland {
         font_reloaded_t cb;
         void *data;
     } font_reloaded;
+    char *dpi_aware;
 
     int width;
     int height;
@@ -864,8 +865,20 @@ static void
 update_size(struct wayland *wayl)
 {
     const struct monitor *mon = wayl->monitor;
-    const int scale = mon != NULL ? mon->scale : guess_scale(wayl);
-    const float dpi = wayl_ppi(wayl);
+    int scale;
+    float dpi;
+
+    if (strcmp(wayl->dpi_aware, "yes") == 0) {
+        scale = mon != NULL ? mon->scale : guess_scale(wayl);
+        dpi = wayl_ppi(wayl);
+    } else if (strcmp(wayl->dpi_aware, "no") == 0) {
+        scale = 1;
+        dpi = 96.;
+    } else { /* auto */
+        scale = mon != NULL ? mon->scale : guess_scale(wayl);
+        float ppi = wayl_ppi(wayl);
+        dpi = scale > 1 ? ppi * scale : ppi;
+    }
 
     if (scale == wayl->scale && dpi == wayl->dpi)
         return;
@@ -1433,7 +1446,7 @@ wayl_init(struct fdm *fdm,
           struct render *render, struct prompt *prompt, struct matches *matches,
           const struct render_options *render_options, bool dmenu_mode,
           const char *output_name, const char *font_name,
-          font_reloaded_t font_reloaded_cb, void *data)
+          font_reloaded_t font_reloaded_cb, void *data, const char *dpi_aware)
 {
     struct wayland *wayl = malloc(sizeof(*wayl));
     *wayl = (struct wayland){
@@ -1451,6 +1464,7 @@ wayl_init(struct fdm *fdm,
             .cb = font_reloaded_cb,
             .data = data,
         },
+        .dpi_aware = strdup(dpi_aware),
     };
 
     wayl->display = wl_display_connect(NULL);
