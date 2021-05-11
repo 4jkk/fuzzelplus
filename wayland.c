@@ -868,16 +868,16 @@ update_size(struct wayland *wayl)
     int scale;
     float dpi;
 
-    if (strcmp(wayl->dpi_aware, "yes") == 0) {
-        scale = mon != NULL ? mon->scale : guess_scale(wayl);
-        dpi = wayl_ppi(wayl);
-    } else if (strcmp(wayl->dpi_aware, "no") == 0) {
-        scale = 1;
-        dpi = 96.;
-    } else { /* auto */
+    if (strcmp(wayl->dpi_aware, "auto") == 0) {
         scale = mon != NULL ? mon->scale : guess_scale(wayl);
         float ppi = wayl_ppi(wayl);
         dpi = scale > 1 ? ppi * scale : ppi;
+    } else if (strcmp(wayl->dpi_aware, "no") == 0) {
+        scale = 1;
+        dpi = 96.;
+    } else { /* yes */
+        scale = mon != NULL ? mon->scale : guess_scale(wayl);
+        dpi = wayl_ppi(wayl);
     }
 
     if (scale == wayl->scale && dpi == wayl->dpi)
