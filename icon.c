@@ -236,8 +236,6 @@ load_theme_in(const char *dir, struct icon_theme *theme,
     char path[PATH_MAX];
     snprintf(path, sizeof(path), "%s/index.theme", dir);
 
-    LOG_WARN("parsing: %s", path);
-
     FILE *index = fopen(path, "r");
     if (index == NULL)
         return false;
