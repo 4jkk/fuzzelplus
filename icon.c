@@ -265,6 +265,7 @@ icon_load_theme(const char *name)
             if (load_theme_in(path, &theme, &themes_to_load)) {
                 theme.name = strdup(theme_name);
                 tll_push_back(themes, theme);
+                break;
             }
         }
 
