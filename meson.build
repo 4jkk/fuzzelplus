@@ -62,7 +62,7 @@ wayland_cursor = dependency('wayland-cursor')
 xkb = dependency('xkbcommon')
 
 tllist = dependency('tllist', version: '>=1.0.1', fallback: 'tllist')
-fcft = dependency('fcft', version: ['>=3.0.0', '<4.0.0'], fallback: 'fcft')
+fcft = dependency('fcft', version: ['>=3.1.5', '<4.0.0'], fallback: 'fcft')
 
 if cairo.found()
   add_project_arguments('-DFUZZEL_ENABLE_CAIRO=1', language: 'c')
