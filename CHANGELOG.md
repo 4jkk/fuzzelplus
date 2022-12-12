@@ -24,19 +24,43 @@
 
 ### Added
 
+* Add support for startup notifications via xdg activation ([#195][195])
 * Convert tabs to spaces when rendering ([#137][137]).
+* `--dmenu0` command line option. Like `--dmenu`, but input is NUL
+  separated instead of newline separated ([#197][197]).
+* Support for localized strings. If you want the old behavior, run
+  `fuzzel` with `LC_MESSAGES=C` ([#199][199]).
 * Export `FUZZEL_DESKTOP_FILE_ID` environment variable when setting the
   `--launch-prefix` in order to pass the Desktop File ID to the launch prefix
   ([#145][145]).
 
+[195]: https://codeberg.org/dnkl/fuzzel/pulls/195
 [137]: https://codeberg.org/dnkl/fuzzel/issues/137
+[197]: https://codeberg.org/dnkl/fuzzel/issues/197
+[199]: https://codeberg.org/dnkl/fuzzel/issues/199
 [145]: https://codeberg.org/dnkl/fuzzel/issues/145
 
 
 ### Changed
+
+* Better verification of color values specified on the command line
+  ([#194][194]).
+
+[194]: https://codeberg.org/dnkl/fuzzel/issues/194
+
+
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Update nanosvg to f0a3e10. Fixes rendering of certain SVG icons
+  ([#190][190]).
+* Not being able to input numbers using the keypad ([#192][192]).
+
+[190]: https://codeberg.org/dnkl/fuzzel/issues/190
+[192]: https://codeberg.org/dnkl/fuzzel/issues/192
+
+
 ### Security
 ### Contributors
 

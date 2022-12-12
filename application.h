@@ -57,7 +57,9 @@ struct application {
     char32_t *basename;
     char32_t *wexec;  /* Same as ‘exec’, but for matching purposes */
     char32_t *title;
+    char32_t *render_title;
     char32_t *generic_name;
+    char *app_id;
     char32_t *comment;
     char32_list_t keywords;
     char32_list_t categories;
@@ -68,7 +70,8 @@ struct application {
 };
 
 bool application_execute(
-    const struct application *app, const struct prompt *prompt, const char *launch_prefix);
+    const struct application *app, const struct prompt *prompt,
+    const char *launch_prefix, const char *xdg_activation_token);
 
 struct application_list {
     struct application *v;

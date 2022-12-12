@@ -1,9 +1,17 @@
+function __fish_complete_fuzzel_output
+  if type -q wlr-randr;
+    wlr-randr | grep -e '^[^[:space:]]\+' | cut -d ' ' -f 1
+  else if type -q swaymsg;
+    swaymsg -t get_outputs --raw|grep name|cut -d '"' -f 4
+  end
+end
+
 complete -c fuzzel
 
 complete -c fuzzel -f
 complete -c fuzzel -r -s c -l config                                                                            -d "path to configuration file (XDG_CONFIG_HOME/fuzzel/fuzzel.ini)"
 complete -c fuzzel -x -s f -l font               -a "(fc-list : family | sed 's/,/\n/g' | sort | uniq)"         -d "font name and style in fontconfig format (monospace)"
-complete -c fuzzel -x -s o -l output             -a "(wlr-randr | grep -e '^[^[:space:]]\+' | cut -d ' ' -f 1)" -d "output (monitor) do display on (none)"
+complete -c fuzzel -x -s o -l output             -a "(__fish_complete_fuzzel_output)" -d "output (monitor) do display on (none)"
 complete -c fuzzel -x -s D -l dpi-aware          -a "no yes auto"                                               -d "scale fonts using the monitor's DPI (auto)"
 complete -c fuzzel -x      -l icon-theme         -a "(find /usr/share/icons -mindepth 1 -maxdepth 1 -type d -print0 | xargs -0 -n 1 basename | sort)" -d "icon theme name (hicolor)"
 complete -c fuzzel    -s I -l no-icons                                                                          -d "do not render any icons"
@@ -35,7 +43,8 @@ complete -c fuzzel -x      -l fuzzy-max-distance                                
 complete -c fuzzel -x      -l line-height                                                                       -d "override the line height from font metrics, in points or pixels"
 complete -c fuzzel -x      -l letter-spacing                                                                    -d "additional letter spacing, in points or pixels"
 complete -c fuzzel -x      -l layer              -a "top overlay"                                               -d "which layer to render the fuzzel window on (top)"
-complete -c fuzzel    -s d -l dmenu                                                                             -d "dmenu compatibility mode; list entries are read from stdin"
+complete -c fuzzel    -s d -l dmenu                                                                             -d "dmenu compatibility mode; entries are read from stdin, newline separated"
+complete -c fuzzel         -l dmenu0                                                                            -d "dmenu compatibility mode; entries are read from stdin, NUL separated"
 complete -c fuzzel         -l index                                                                             -d "print selected entry's index instead of its text (dmenu mode only)"
 complete -c fuzzel    -s R -l no-run-if-empty                                                                   -d "exit immediately without showing the UI if stdin is empty (dmenu mode only)"
 complete -c fuzzel -x -s d -l log-level          -a "info warning error none"                                   -d "log-level (info)"

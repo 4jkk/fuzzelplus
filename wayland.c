@@ -23,6 +23,7 @@
 
 #include <xdg-output-unstable-v1.h>
 #include <wlr-layer-shell-unstable-v1.h>
+#include <xdg-activation-v1.h>
 
 #include <tllist.h>
 
@@ -181,6 +182,7 @@ struct wayland {
     struct zwlr_layer_surface_v1 *layer_surface;
     struct wl_shm *shm;
     struct zxdg_output_manager_v1 *xdg_output_manager;
+    struct xdg_activation_v1 *xdg_activation_v1;
 
     tll(struct monitor) monitors;
     const struct monitor *monitor;
@@ -465,13 +467,52 @@ keyboard_leave(void *data, struct wl_keyboard *wl_keyboard, uint32_t serial,
 }
 
 static void
-execute_selected(struct wayland *wayl, int custom_success_exit_code)
+token_done(void *data, struct xdg_activation_token_v1 *token,
+           const char *name)
 {
+    char **xdg_activation_token = data;
+    *xdg_activation_token = strdup(name);
+}
+
+static const struct xdg_activation_token_v1_listener token_listener = {
+    .done = token_done
+};
+
+
+/* Synchronously grab a token from the compositor. The compositor may refuse to
+ * grant a token by not sending the done event. In this case, the
+ * xdg_activation_token return parameter will not be modified.
+ */
+static void
+get_xdg_activation_token(struct seat *seat, const char *app_id,
+                         char **xdg_activation_token)
+{
+    struct wayland *wayl = seat->wayl;
+    struct xdg_activation_token_v1 *token =
+        xdg_activation_v1_get_activation_token(wayl->xdg_activation_v1);
+    xdg_activation_token_v1_set_serial(token, seat->kbd.serial, seat->wl_seat);
+    xdg_activation_token_v1_set_surface(token, wayl->surface);
+    if (app_id != NULL)
+        xdg_activation_token_v1_set_app_id(token, app_id);
+
+    xdg_activation_token_v1_add_listener(token, &token_listener,
+            xdg_activation_token);
+    xdg_activation_token_v1_commit(token);
+    wl_display_roundtrip(wayl->display);
+    xdg_activation_token_v1_destroy(token);
+}
+
+
+static void
+execute_selected(struct seat *seat, int custom_success_exit_code)
+{
+    struct wayland *wayl = seat->wayl;
     wayl->status = EXIT;
 
     const struct match *match = matches_get_match(wayl->matches);
     struct application *app = match != NULL ? match->application : NULL;
     ssize_t index = match != NULL ? match->index : -1;
+
 
     if (wayl->conf->dmenu.enabled) {
         dmenu_execute(app, index, wayl->prompt, wayl->conf->dmenu.mode);
@@ -479,8 +520,14 @@ execute_selected(struct wayland *wayl, int custom_success_exit_code)
             ? custom_success_exit_code
             : EXIT_SUCCESS;
     } else {
+        char *xdg_activation_token = NULL;
+        if (wayl->xdg_activation_v1) {
+            get_xdg_activation_token(seat, app->app_id, &xdg_activation_token);
+        }
+
         bool success = application_execute(
-            app, wayl->prompt, wayl->conf->launch_prefix);
+            app, wayl->prompt, wayl->conf->launch_prefix, xdg_activation_token);
+        free(xdg_activation_token);
 
         wayl->exit_code = success
             ? (custom_success_exit_code >= 0
@@ -497,8 +544,7 @@ execute_selected(struct wayland *wayl, int custom_success_exit_code)
 
 
 static bool
-execute_binding(struct seat *seat, const struct key_binding *binding,
-                bool *refresh)
+execute_binding(struct seat *seat, const struct key_binding *binding, bool *refresh)
 {
     const enum bind_action action = binding->action;
     struct wayland *wayl = seat->wayl;
@@ -568,12 +614,12 @@ execute_binding(struct seat *seat, const struct key_binding *binding,
         return true;
 
     case BIND_ACTION_MATCHES_EXECUTE:
-        execute_selected(wayl, -1);
+        execute_selected(seat, -1);
         return true;
 
     case BIND_ACTION_MATCHES_EXECUTE_OR_NEXT:
         if (matches_get_count(wayl->matches) == 1)
-            execute_selected(wayl, -1);
+            execute_selected(seat, -1);
         else
             *refresh = matches_selected_next(wayl->matches, true);
         return true;
@@ -622,7 +668,7 @@ execute_binding(struct seat *seat, const struct key_binding *binding,
     case BIND_ACTION_CUSTOM_18:
     case BIND_ACTION_CUSTOM_19: {
         const size_t idx = action - BIND_ACTION_CUSTOM_1;
-        execute_selected(wayl, 10 + idx);
+        execute_selected(seat, 10 + idx);
         return true;
     }
 
@@ -632,6 +678,52 @@ execute_binding(struct seat *seat, const struct key_binding *binding,
     }
 
     return false;
+}
+
+static bool
+symbol_is_keypad(xkb_keysym_t sym)
+{
+    switch (sym) {
+    default:
+        return false;
+
+    case XKB_KEY_KP_Space:
+    case XKB_KEY_KP_Tab:
+    case XKB_KEY_KP_Enter:
+    case XKB_KEY_KP_F1:
+    case XKB_KEY_KP_F2:
+    case XKB_KEY_KP_F3:
+    case XKB_KEY_KP_F4:
+    case XKB_KEY_KP_Home:
+    case XKB_KEY_KP_Left:
+    case XKB_KEY_KP_Up:
+    case XKB_KEY_KP_Right:
+    case XKB_KEY_KP_Down:
+    case XKB_KEY_KP_Prior:
+    case XKB_KEY_KP_Next:
+    case XKB_KEY_KP_End:
+    case XKB_KEY_KP_Begin:
+    case XKB_KEY_KP_Insert:
+    case XKB_KEY_KP_Delete:
+    case XKB_KEY_KP_Equal:
+    case XKB_KEY_KP_Multiply:
+    case XKB_KEY_KP_Add:
+    case XKB_KEY_KP_Separator:
+    case XKB_KEY_KP_Subtract:
+    case XKB_KEY_KP_Decimal:
+    case XKB_KEY_KP_Divide:
+    case XKB_KEY_KP_0:
+    case XKB_KEY_KP_1:
+    case XKB_KEY_KP_2:
+    case XKB_KEY_KP_3:
+    case XKB_KEY_KP_4:
+    case XKB_KEY_KP_5:
+    case XKB_KEY_KP_6:
+    case XKB_KEY_KP_7:
+    case XKB_KEY_KP_8:
+    case XKB_KEY_KP_9:
+        return true;
+    }
 }
 
 static void
@@ -725,6 +817,7 @@ keyboard_key(void *data, struct wl_keyboard *wl_keyboard, uint32_t serial,
     assert(bindings != NULL);
 
     bool refresh = false;
+    seat->kbd.serial = serial;
     tll_foreach(bindings->key, it) {
         const struct key_binding *bind = &it->item;
 
@@ -738,6 +831,20 @@ keyboard_key(void *data, struct wl_keyboard *wl_keyboard, uint32_t serial,
         }
 
         if (bind->mods != bind_mods || bind_mods != (mods & ~locked))
+            continue;
+
+        /*
+         * Skip raw key codes for keypad keys.
+         *
+         * The keypad is usually unaffected by the layout. Instead,
+         * mapping raw key codes effectively means we’ll ignore
+         * NumLock. That is, if we have a key binding for KP_PageUp,
+         * it’ll trigger regardless of NumLock setting, and thus
+         * making it impossible to use the keypad to enter numericals.
+         *
+         * See https://codeberg.org/dnkl/fuzzel/issues/192
+         */
+        if (symbol_is_keypad(bind->k.sym))
             continue;
 
         for (size_t i = 0; i < raw_count; i++) {
@@ -1460,6 +1567,15 @@ handle_global(void *data, struct wl_registry *registry,
         wayl->xdg_output_manager = wl_registry_bind(
             wayl->registry, name, &zxdg_output_manager_v1_interface, required);
     }
+
+    else if (strcmp(interface, xdg_activation_v1_interface.name) == 0) {
+        const uint32_t required = 1;
+        if (!verify_iface_version(interface, version, required))
+            return;
+
+        wayl->xdg_activation_v1 = wl_registry_bind(
+            wayl->registry, name, &xdg_activation_v1_interface, required);
+    }
 }
 
 static void
@@ -1946,6 +2062,8 @@ wayl_destroy(struct wayland *wayl)
 
     if (wayl->xdg_output_manager != NULL)
         zxdg_output_manager_v1_destroy(wayl->xdg_output_manager);
+    if (wayl->xdg_activation_v1 != NULL)
+        xdg_activation_v1_destroy(wayl->xdg_activation_v1);
 
     if (wayl->layer_surface != NULL)
         zwlr_layer_surface_v1_destroy(wayl->layer_surface);

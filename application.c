@@ -116,7 +116,8 @@ err:
 }
 
 bool
-application_execute(const struct application *app, const struct prompt *prompt, const char *launch_prefix)
+application_execute(const struct application *app, const struct prompt *prompt,
+                    const char *launch_prefix, const char *xdg_activation_token)
 {
     const char32_t *ptext = prompt_text(prompt);
     const size_t c32len = c32tombs(NULL, ptext, 0);
@@ -222,6 +223,13 @@ application_execute(const struct application *app, const struct prompt *prompt, 
                 LOG_ERRNO("failed to chdir to %s", path);
         }
 
+        if (xdg_activation_token != NULL) {
+            /* Prepare client for xdg activation startup */
+            setenv("XDG_ACTIVATION_TOKEN", xdg_activation_token, 1);
+            /* And X11 startup notifications */
+            setenv("DESKTOP_STARTUP_ID", xdg_activation_token, 1);
+        }
+
         /* Redirect stdin/stdout/stderr -> /dev/null */
         int devnull_r = open("/dev/null", O_RDONLY | O_CLOEXEC);
         int devnull_w = open("/dev/null", O_WRONLY | O_CLOEXEC);
@@ -288,7 +296,10 @@ applications_destroy(struct application_list *apps)
         free(app->exec);
         free(app->basename);
         free(app->wexec);
+        free(app->app_id);
         free(app->title);
+        if (app->render_title != app->title)
+            free(app->render_title);
         free(app->generic_name);
         free(app->comment);
         free(app->icon.name);
