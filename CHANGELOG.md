@@ -25,8 +25,12 @@
 ### Added
 
 * Convert tabs to spaces when rendering ([#137][137]).
+* Export `FUZZEL_DESKTOP_FILE_ID` environment variable when setting the
+  `--launch-prefix` in order to pass the Desktop File ID to the launch prefix
+  ([#145][145]).
 
 [137]: https://codeberg.org/dnkl/fuzzel/issues/137
+[145]: https://codeberg.org/dnkl/fuzzel/issues/145
 
 
 ### Changed
