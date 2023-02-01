@@ -326,7 +326,7 @@ done by setting _action=none_; e.g. *delete-line=none*.
 
 *prev-with-wrap*
 	Select the previous entry. Wraps around when the first entry has
-	been reached. Default: _ISO_Left_Tab_.
+	been reached. Default: _ISO_Left_Tap_. (Shift+Tab)
 
 *prev-page*
 	Switch to the previous page. Default: _PageUp KP_PageUp_.
@@ -336,8 +336,8 @@ done by setting _action=none_; e.g. *delete-line=none*.
 	has been reached. Default: _Down Control+n_.
 
 *next-with-wrap*
-	Select the previous entry. Wraps around when the first entry has
-	been reached. Default: _not bound_.
+	Select the next entry. Wraps around when the last entry has
+	been reached. Default: _unbound_.
 
 *next-page*
 	Switch to the next page. Default: _Page_Down KP_Page_Down_.
