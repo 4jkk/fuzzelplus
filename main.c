@@ -245,6 +245,7 @@ print_usage(const char *prog_name)
            "  -T,--terminal                  terminal command to use when launching\n"
            "                                 'terminal' programs, e.g. \"xterm -e\".\n"
            "                                 Not used in dmenu mode (not set)\n"
+           "  -a,--anchor                    window anchor (top, bottom, left, right and combinations)"
            "  -l,--lines                     number of matches to show\n"
            "  -w,--width                     window width, in characters (margins and\n"
            "                                 borders not included)\n"
@@ -532,6 +533,7 @@ main(int argc, char *const *argv)
         {"no-icons",             no_argument,       0, 'I'},
         {"fields",               required_argument, 0, 'F'},
         {"password",             optional_argument, 0, OPT_PASSWORD},
+        {"anchor",               required_argument, 0, 'a'},
         {"lines",                required_argument, 0, 'l'},
         {"width",                required_argument, 0, 'w'},
         {"tabs",                 required_argument, 0, OPT_TABS},
@@ -586,6 +588,7 @@ main(int argc, char *const *argv)
         bool dpi_aware_set:1;
         bool match_fields_set:1;
         bool icons_disabled_set:1;
+        bool anchor_set:1;
         bool lines_set:1;
         bool chars_set:1;
         bool tabs_set:1;
@@ -756,6 +759,11 @@ main(int argc, char *const *argv)
 
         case 'T':
             cmdline_overrides.conf.terminal = optarg;
+            break;
+
+        case 'a':
+            // FIXME checks
+            cmdline_overrides.anchor_set = true;
             break;
 
         case 'l':
@@ -1161,6 +1169,8 @@ main(int argc, char *const *argv)
         conf.match_fields = cmdline_overrides.conf.match_fields;
     if (cmdline_overrides.icons_disabled_set)
         conf.icons_enabled = cmdline_overrides.conf.icons_enabled;
+    if (cmdline_overrides.anchor_set)
+        conf.anchor = cmdline_overrides.conf.anchor;
     if (cmdline_overrides.lines_set)
         conf.lines = cmdline_overrides.conf.lines;
     if (cmdline_overrides.chars_set)

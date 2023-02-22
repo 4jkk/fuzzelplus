@@ -769,6 +769,46 @@ parse_section_main(struct context *ctx)
     else if (strcmp(key, "launch-prefix") == 0)
         return value_to_str(ctx, &conf->launch_prefix);
 
+    else if (strcmp(key, "anchor") == 0) {
+        static const struct {
+            char *name;
+            enum anchors value;
+        } map[] = {
+            {"top-left", ANCHOR_TOP_LEFT},
+            {"top", ANCHOR_TOP},
+            {"top-right", ANCHOR_TOP_RIGHT},
+            {"left", ANCHOR_LEFT},
+            {"center", ANCHOR_CENTER},
+            {"right", ANCHOR_RIGHT},
+            {"bottom-left", ANCHOR_BOTTOM_LEFT},
+            {"bottom", ANCHOR_BOTTOM},
+            {"bottom-right", ANCHOR_BOTTOM_RIGHT},
+        };
+
+        uint32_t anchor = 0;
+
+        for (size_t i = 0; i < sizeof(map) / sizeof(map[0]); i++) {
+            if (strcmp(value, map[i].name) == 0) {
+                anchor = map[i].value;
+                break;
+            }
+        }
+        
+        if (anchor == 0) {
+            LOG_CONTEXTUAL_ERR(
+                "invalid anchor \"%s\", "
+                "must be one of: "
+                "\"center\", \"top-left\", \"top\", \"top-right\", "
+                "\"right\", \"bottom-right\", \"bottom\""
+                "\"bottom-left\", \"left\"",
+                value);
+            return false;
+        }
+
+        conf->anchor = anchor;
+        return true;
+    }
+
     else if (strcmp(key, "lines") == 0)
         return value_to_uint32(ctx, 10, &conf->lines);
 
@@ -1400,6 +1440,7 @@ config_load(struct config *conf, const char *conf_path,
             .exit_immediately_if_empty = false,
             .delim = '\n',
         },
+        .anchor = ANCHOR_CENTER,
         .lines = 15,
         .chars = 30,
         .tabs = 8,
