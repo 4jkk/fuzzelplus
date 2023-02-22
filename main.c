@@ -637,7 +637,7 @@ main(int argc, char *const *argv)
     }
 
     while (true) {
-        int c = getopt_long(argc, argv, ":o:f:D:IF:il:w:x:y:p:P:b:t:m:s:S:M:B:r:C:T:dRvh", longopts, NULL);
+        int c = getopt_long(argc, argv, ":o:f:D:IF:ia:l:w:x:y:p:P:b:t:m:s:S:M:B:r:C:T:dRvh", longopts, NULL);
         if (c == -1)
             break;
 
@@ -762,7 +762,21 @@ main(int argc, char *const *argv)
             break;
 
         case 'a':
-            // FIXME checks
+            uint32_t anchor = 0;
+
+            for (size_t i = 0; i < sizeof(ANCHORS_MAP) / sizeof(ANCHORS_MAP[0]); i++) {
+                if (strcmp(optarg, ANCHORS_MAP[i].name) == 0) {
+                    anchor = ANCHORS_MAP[i].value;
+                    break;
+                }
+            }
+
+            if (anchor == 0) {
+                fprintf(stderr, "%s: invalid anchor\n", optarg);
+                return EXIT_FAILURE;
+            }
+
+            cmdline_overrides.conf.anchor = anchor;
             cmdline_overrides.anchor_set = true;
             break;
 

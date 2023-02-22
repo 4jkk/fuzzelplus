@@ -770,26 +770,11 @@ parse_section_main(struct context *ctx)
         return value_to_str(ctx, &conf->launch_prefix);
 
     else if (strcmp(key, "anchor") == 0) {
-        static const struct {
-            char *name;
-            enum anchors value;
-        } map[] = {
-            {"top-left", ANCHOR_TOP_LEFT},
-            {"top", ANCHOR_TOP},
-            {"top-right", ANCHOR_TOP_RIGHT},
-            {"left", ANCHOR_LEFT},
-            {"center", ANCHOR_CENTER},
-            {"right", ANCHOR_RIGHT},
-            {"bottom-left", ANCHOR_BOTTOM_LEFT},
-            {"bottom", ANCHOR_BOTTOM},
-            {"bottom-right", ANCHOR_BOTTOM_RIGHT},
-        };
-
         uint32_t anchor = 0;
 
-        for (size_t i = 0; i < sizeof(map) / sizeof(map[0]); i++) {
-            if (strcmp(value, map[i].name) == 0) {
-                anchor = map[i].value;
+        for (size_t i = 0; i < sizeof(ANCHORS_MAP) / sizeof(ANCHORS_MAP[0]); i++) {
+            if (strcmp(value, ANCHORS_MAP[i].name) == 0) {
+                anchor = ANCHORS_MAP[i].value;
                 break;
             }
         }
