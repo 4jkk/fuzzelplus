@@ -140,7 +140,7 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	Set window anchor, i.e. where on screen the window will be displayed.
 	You can choose one from:
 
-    - top-left
+	- top-left
 	- top
 	- top-right
 	- left
