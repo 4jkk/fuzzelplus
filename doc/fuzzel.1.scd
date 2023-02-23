@@ -105,6 +105,9 @@ or command line options:
 	*Terminal=true* (_htop_, for example). Example: _xterm -e_.
 	Default: _not set_.
 
+*-a*,*--anchor*=ANCHOR
+	The window anchor. Default: _center_.
+
 *-l*,*--lines*=COUNT
 	The (maximum) number of matches to display. This dictates the
 	window height. Default: _15_.
