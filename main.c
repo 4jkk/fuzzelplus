@@ -645,7 +645,7 @@ main(int argc, char *const *argv)
         char *copy = strdup(argv[0]);
         if (copy != NULL) {
             const char *name = basename(copy);
-            if (name != NULL && strcmp(name, "dmenu") == 0) {
+            if (name != NULL && (strcmp(name, "dmenu") == 0 || strcmp(name, "dmenu-wl") == 0)) {
                 cmdline_overrides.conf.dmenu.enabled = true;
                 cmdline_overrides.dmenu_enabled_set = true;
             }

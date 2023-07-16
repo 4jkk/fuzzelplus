@@ -24,7 +24,11 @@
 
 
 ## Unreleased
+
 ### Added
+
+* If `argv[0]` is _dmenu-wl_, fuzzel also starts in dmenu mode.
+
 ### Changed
 ### Deprecated
 ### Removed

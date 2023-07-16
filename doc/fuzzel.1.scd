@@ -236,8 +236,8 @@ or command line options:
 	stdout. If the input string does not match any of the entries, the
 	input string is printed as is on stdout.
 	
-	Alternatively, you can symlink the fuzzel binary to
-	*dmenu*. Fuzzel will then start in dmenu mode, without the
+	Alternatively, you can symlink the fuzzel binary to *dmenu* or
+	*dmenu-wl*. Fuzzel will then start in dmenu mode, without the
 	*--dmenu* argument.
 	
 	Fuzzel also supports icons, using Rofi's extended dmenu
