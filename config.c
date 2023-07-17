@@ -15,13 +15,25 @@
 #include <unistd.h>
 #include <ctype.h>
 
-
 #define LOG_MODULE "config"
 #define LOG_ENABLE_DBG 0
 #include "log.h"
 #include "key-binding.h"
 
 #define ALEN(v) (sizeof(v) / sizeof((v)[0]))
+
+const struct anchors_map anchors_map[] = {
+    {"top-left", ANCHOR_TOP_LEFT},
+    {"top", ANCHOR_TOP},
+    {"top-right", ANCHOR_TOP_RIGHT},
+    {"left", ANCHOR_LEFT},
+    {"center", ANCHOR_CENTER},
+    {"right", ANCHOR_RIGHT},
+    {"bottom-left", ANCHOR_BOTTOM_LEFT},
+    {"bottom", ANCHOR_BOTTOM},
+    {"bottom-right", ANCHOR_BOTTOM_RIGHT},
+    {NULL, 0},
+};
 
 static const char *const binding_action_map[] = {
     [BIND_ACTION_NONE] = NULL,
@@ -778,9 +790,9 @@ parse_section_main(struct context *ctx)
     else if (strcmp(key, "anchor") == 0) {
         uint32_t anchor = 0;
 
-        for (size_t i = 0; i < sizeof(ANCHORS_MAP) / sizeof(ANCHORS_MAP[0]); i++) {
-            if (strcmp(value, ANCHORS_MAP[i].name) == 0) {
-                anchor = ANCHORS_MAP[i].value;
+        for (size_t i = 0; anchors_map[i].name != NULL; i++) {
+            if (strcmp(value, anchors_map[i].name) == 0) {
+                anchor = anchors_map[i].value;
                 break;
             }
         }

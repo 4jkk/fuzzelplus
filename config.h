@@ -51,20 +51,12 @@ enum anchors {
     ANCHOR_BOTTOM_RIGHT = ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT,
 };
 
-static const struct {
-    char *name;
+struct anchors_map {
+    const char *name;
     enum anchors value;
-} ANCHORS_MAP[] = {
-    {"top-left", ANCHOR_TOP_LEFT},
-    {"top", ANCHOR_TOP},
-    {"top-right", ANCHOR_TOP_RIGHT},
-    {"left", ANCHOR_LEFT},
-    {"center", ANCHOR_CENTER},
-    {"right", ANCHOR_RIGHT},
-    {"bottom-left", ANCHOR_BOTTOM_LEFT},
-    {"bottom", ANCHOR_BOTTOM},
-    {"bottom-right", ANCHOR_BOTTOM_RIGHT},
 };
+
+extern const struct anchors_map anchors_map[];
 
 struct config_key_modifiers {
     bool shift;

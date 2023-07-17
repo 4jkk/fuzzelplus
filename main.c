@@ -245,7 +245,7 @@ print_usage(const char *prog_name)
            "  -T,--terminal                  terminal command to use when launching\n"
            "                                 'terminal' programs, e.g. \"xterm -e\".\n"
            "                                 Not used in dmenu mode (not set)\n"
-           "  -a,--anchor                    window anchor (top, bottom, left, right and combinations)"
+           "  -a,--anchor                    window anchor (center)\n"
            "  -l,--lines                     number of matches to show\n"
            "  -w,--width                     window width, in characters (margins and\n"
            "                                 borders not included)\n"
@@ -786,9 +786,9 @@ main(int argc, char *const *argv)
         case 'a':
             uint32_t anchor = 0;
 
-            for (size_t i = 0; i < sizeof(ANCHORS_MAP) / sizeof(ANCHORS_MAP[0]); i++) {
-                if (strcmp(optarg, ANCHORS_MAP[i].name) == 0) {
-                    anchor = ANCHORS_MAP[i].value;
+            for (size_t i = 0; anchors_map[i].name != NULL; i++) {
+                if (strcmp(optarg, anchors_map[i].name) == 0) {
+                    anchor = anchors_map[i].value;
                     break;
                 }
             }

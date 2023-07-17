@@ -105,8 +105,18 @@ or command line options:
 	*Terminal=true* (_htop_, for example). Example: _xterm -e_.
 	Default: _not set_.
 
-*-a*,*--anchor*=ANCHOR
-	The window anchor. Default: _center_.
+*-a*,*--anchor*=_ANCHOR_
+	The window anchor. Default: _center_. Allowed options:
+	
+	- _top-left_
+	- _top_
+	- _top-right_
+	- _left_
+	- _center_
+	- _right_
+	- _bottom-left_
+	- _bottom_
+	- _bottom-right_
 
 *-l*,*--lines*=COUNT
 	The (maximum) number of matches to display. This dictates the

@@ -25,6 +25,11 @@
 
 ## Unreleased
 ### Added
+
+* New option `--anchor` allows setting the window position anchor (i.e. where
+  on the screen the window should generally be positioned), such as `top`,
+  `top-left`, `bottom-right`, `center`, etc. Defaults to `center`
+
 ### Changed
 ### Deprecated
 ### Removed
