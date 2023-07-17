@@ -1,6 +1,7 @@
 #include "match.h"
 
 #include <stdlib.h>
+#include <string.h>
 #include <wctype.h>
 #include <assert.h>
 
@@ -298,11 +299,40 @@ matches_get_count(const struct matches *matches)
 }
 
 size_t
+matches_get_total_count(const struct matches *matches)
+{
+    return matches->match_count;
+}
+
+size_t
 matches_get_match_index(const struct matches *matches)
 {
     return matches->max_matches_per_page != 0
         ? matches->selected % matches->max_matches_per_page
         : 0;
+}
+
+bool
+matches_selected_first(struct matches *matches)
+{
+    if (matches->match_count <= 0 || matches->selected <= 0)
+        return false;
+
+    matches->selected = 0;
+    return true;
+}
+
+bool
+matches_selected_last(struct matches *matches)
+{
+    if (matches->match_count <= 0 ||
+        matches->selected >= matches->match_count - 1)
+    {
+        return false;
+    }
+
+    matches->selected = matches->match_count - 1;
+    return true;
 }
 
 bool

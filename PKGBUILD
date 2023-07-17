@@ -3,7 +3,7 @@ PNG_BACKEND=libpng   # none|libpng
 SVG_BACKEND=librsvg  # none|librsvg|nanosvg (librsvg force-enables cairo, nanosvg is bundled)
 
 pkgname=fuzzel
-pkgver=1.8.2
+pkgver=1.9.2
 pkgrel=1
 pkgdesc="Simplistic application launcher for wayland"
 arch=('x86_64' 'aarch64')
@@ -12,6 +12,7 @@ license=(mit)
 makedepends=('meson' 'ninja' 'scdoc' 'wayland-protocols' 'tllist>=1.0.1')
 depends=('libxkbcommon' 'wayland' 'pixman' 'fcft>=3.0.0' 'fcft<4.0.0')
 source=()
+changelog=CHANGELOG.md
 
 if [[ ${PNG_BACKEND} == libpng ]]; then
     depends+=( 'libpng' )

@@ -1,6 +1,9 @@
 # Changelog
 
 * [Unreleased](#unreleased)
+* [1.9.2](#1-9-2)
+* [1.9.1](#1-9-1)
+* [1.9.0](#1-9-0)
 * [1.8.2](#1-8-2)
 * [1.8.1](#1-8-1)
 * [1.8.0](#1-8-0)
@@ -21,6 +24,67 @@
 
 
 ## Unreleased
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+### Contributors
+
+
+## 1.9.2
+
+### Added
+
+* Added a new option `--filter-desktop` which toggles filtering of desktop
+  entries based on the OnlyShowIn and NotShowIn keys. Filtering is based on the
+  value of $XDG\_CURRENT\_DESKTOP according to desktop-entry spec. Filtering is
+  off by default. To disable filtering set in the config from the command line,
+  use --filter-desktop=no
+
+
+### Changed
+
+* Output scaling is now applied to the border radius ([#236][236]).
+
+[236]: https://codeberg.org/dnkl/fuzzel/issues/236
+
+
+### Fixed
+
+* Last line sometimes not being rendered ([#234][234]).
+* `key-bindings.cursor-right-word` not being recognized as a valid
+  action.
+* `password-character` being set in `fuzzel.ini` incorrectly enabling
+  password mode ([#241][241]).
+* Added missing zsh+fish completions for `--password`.
+
+[234]: https://codeberg.org/dnkl/fuzzel/issues/234
+[241]: https://codeberg.org/dnkl/fuzzel/issues/241
+
+
+### Contributors
+
+* complex2liu
+* Mark Stosberg
+* Ronan Pigott
+
+
+## 1.9.1
+
+### Fixed
+
+* Regression: default font size was unintentionally changed from 12pt
+  in 1.8.2, to 8pt in 1.9.0. The old default of 12pt has now been
+  restored.
+* Regression: crash when pressing Enter and the match list is empty (e.g. when
+  trying to execute a command line) ([#222][222]).
+
+[222]: https://codeberg.org/dnkl/fuzzel/issues/222
+
+
+## 1.9.0
 
 ### Added
 
@@ -33,36 +97,50 @@
 * Export `FUZZEL_DESKTOP_FILE_ID` environment variable when setting
   the `--launch-prefix` in order to pass the Desktop File ID to the
   launch prefix ([#110][110]).
+* New key bindings: `[key-bindings].first` and `[key-bindings].last`,
+  bound to `Control+Home` and `Control+End` by default ([#210][210]).
+* New key binding: `[key-bindings].insert-selected`, bound to
+  `Control+Tab` by default. It replaces the current prompt (filter)
+  with the selected item ([#212][212]).
 
 [195]: https://codeberg.org/dnkl/fuzzel/pulls/195
 [137]: https://codeberg.org/dnkl/fuzzel/issues/137
 [197]: https://codeberg.org/dnkl/fuzzel/issues/197
 [199]: https://codeberg.org/dnkl/fuzzel/issues/199
 [110]: https://codeberg.org/dnkl/fuzzel/issues/110
+[210]: https://codeberg.org/dnkl/fuzzel/issues/210
+[212]: https://codeberg.org/dnkl/fuzzel/issues/212
 
 
 ### Changed
 
 * Better verification of color values specified on the command line
   ([#194][194]).
+* When determining initial font size, do FontConfig config
+  substitution if the user-provided font pattern has no {pixel}size
+  option ([#1287][foot-1287]).
 
 [194]: https://codeberg.org/dnkl/fuzzel/issues/194
+[foot-1287]: https://codeberg.org/dnkl/foot/issues/1287
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * Update nanosvg to f0a3e10. Fixes rendering of certain SVG icons
   ([#190][190]).
 * Not being able to input numbers using the keypad ([#192][192]).
+* Absolute path PNG icons not being loaded ([#214][214]).
 
 [190]: https://codeberg.org/dnkl/fuzzel/issues/190
 [192]: https://codeberg.org/dnkl/fuzzel/issues/192
+[214]: https://codeberg.org/dnkl/fuzzel/issues/214
 
 
-### Security
 ### Contributors
+
+* Mark Stosberg
+* Max Gautier
+* Ronan Pigott
 
 
 ## 1.8.2

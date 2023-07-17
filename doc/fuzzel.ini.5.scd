@@ -82,7 +82,8 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	Default: _auto_.
 
 *prompt*=
-	String to use as input prompt. Default: _> _.
+	String to use as input prompt. Note that trailing spaces are
+	trimmed, unless the string is quoted. Default: _"> "_.
 
 *icon-theme*
 	Icon theme. Note that the name is case sensitive. Default:
@@ -115,6 +116,9 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	*--password*. Note that this can be overridden on the command
 	line, by explicitly specifying the character with
 	*--password=X*. Default: _\*_.
+
+*filter-desktop*
+	Boolean. Filter desktop files based on the value of XDG_CURRENT_DESKTOP.
 
 *fuzzy*
 	Boolean. Enables or disables fuzzy matching. Default: _yes_.
@@ -208,7 +212,7 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	behavior, for example.
 	
 	Default: _yes_
-l
+
 # SECTION: colors
 
 All color values are in RGBA.
@@ -336,6 +340,11 @@ done by setting _action=none_; e.g. *delete-line=none*.
 *delete-line*
 	Deletes everything after the cursor. Default: _Control+k_.
 
+*insert-selected*
+	Copies the selected entry to the prompt, replacing the current
+	prompt. In application mode, the *Exec* line is inserted, and in
+	dmenu mode the entry itself is used. Default: _Control+Tab_.
+
 *prev*
 	Select the previous entry. Does *not* wrap around when the first
 	entry has been reached. Default: _Up Control+p_.
@@ -357,6 +366,13 @@ done by setting _action=none_; e.g. *delete-line=none*.
 
 *next-page*
 	Switch to the next page. Default: _Page_Down KP_Page_Down_.
+
+*first*
+	Select the first entry, on the first page. Default:
+	_Control+Home_.
+
+*last*
+	Select the last entry, on the last page. Default: _Control+End_.
 
 *custom-1*, *custom-2*, ..., *custom-19*
 	Execute the currently selected entry, then exit with a non-zero

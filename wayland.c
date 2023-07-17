@@ -490,18 +490,20 @@ get_xdg_activation_token(struct seat *seat, const char *app_id,
     struct wayland *wayl = seat->wayl;
     struct xdg_activation_token_v1 *token =
         xdg_activation_v1_get_activation_token(wayl->xdg_activation_v1);
+
     xdg_activation_token_v1_set_serial(token, seat->kbd.serial, seat->wl_seat);
     xdg_activation_token_v1_set_surface(token, wayl->surface);
+
     if (app_id != NULL)
         xdg_activation_token_v1_set_app_id(token, app_id);
 
-    xdg_activation_token_v1_add_listener(token, &token_listener,
-            xdg_activation_token);
+    xdg_activation_token_v1_add_listener(
+        token, &token_listener, xdg_activation_token);
+
     xdg_activation_token_v1_commit(token);
     wl_display_roundtrip(wayl->display);
     xdg_activation_token_v1_destroy(token);
 }
-
 
 static void
 execute_selected(struct seat *seat, int custom_success_exit_code)
@@ -521,9 +523,8 @@ execute_selected(struct seat *seat, int custom_success_exit_code)
             : EXIT_SUCCESS;
     } else {
         char *xdg_activation_token = NULL;
-        if (wayl->xdg_activation_v1) {
+        if (wayl->xdg_activation_v1 != NULL && app != NULL)
             get_xdg_activation_token(seat, app->app_id, &xdg_activation_token);
-        }
 
         bool success = application_execute(
             app, wayl->prompt, wayl->conf->launch_prefix, xdg_activation_token);
@@ -613,12 +614,38 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
             matches_update(wayl->matches, wayl->prompt);
         return true;
 
+    case BIND_ACTION_INSERT_SELECTED: {
+        const struct match *match = matches_get_match(wayl->matches);
+        if (match == NULL)
+            return true;
+
+        prompt_erase_all(wayl->prompt);
+
+        if (wayl->conf->dmenu.enabled) {
+            char *chars = ac32tombs(match->application->title);
+            if (chars != NULL) {
+                *refresh = prompt_insert_chars(
+                    wayl->prompt, chars, strlen(chars));
+                free(chars);
+            }
+        } else {
+            *refresh = prompt_insert_chars(
+                wayl->prompt,
+                match->application->exec,
+                strlen(match->application->exec));
+        }
+
+        if (*refresh)
+            matches_update(wayl->matches, wayl->prompt);
+        return true;
+    }
+
     case BIND_ACTION_MATCHES_EXECUTE:
         execute_selected(seat, -1);
         return true;
 
     case BIND_ACTION_MATCHES_EXECUTE_OR_NEXT:
-        if (matches_get_count(wayl->matches) == 1)
+        if (matches_get_total_count(wayl->matches) == 1)
             execute_selected(seat, -1);
         else
             *refresh = matches_selected_next(wayl->matches, true);
@@ -646,6 +673,14 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
 
     case BIND_ACTION_MATCHES_NEXT_PAGE:
         *refresh = matches_selected_next_page(wayl->matches);
+        return true;
+
+    case BIND_ACTION_MATCHES_FIRST:
+        *refresh = matches_selected_first(wayl->matches);
+        return true;
+
+    case BIND_ACTION_MATCHES_LAST:
+        *refresh = matches_selected_last(wayl->matches);
         return true;
 
     case BIND_ACTION_CUSTOM_1:
@@ -1834,19 +1869,47 @@ font_pattern_to_spec(const char *pattern, struct font_spec *spec)
     if (pat == NULL)
         return false;
 
+    /*
+     * First look for user specified {pixel}size option
+     * e.g. “font-name:size=12”
+     */
+
     double pt_size = -1.0;
-    FcPatternGetDouble(pat, FC_SIZE, 0, &pt_size);
-    FcPatternRemove(pat, FC_SIZE, 0);
+    FcResult have_pt_size = FcPatternGetDouble(pat, FC_SIZE, 0, &pt_size);
 
     int px_size = -1;
-    FcPatternGetInteger(pat, FC_PIXEL_SIZE, 0, &px_size);
-    FcPatternRemove(pat, FC_PIXEL_SIZE, 0);
+    FcResult have_px_size = FcPatternGetInteger(pat, FC_PIXEL_SIZE, 0, &px_size);
 
-    if (pt_size == -1. && px_size == -1)
-        pt_size = 12.0;
+    if (have_pt_size != FcResultMatch && have_px_size != FcResultMatch) {
+        /*
+         * Apply fontconfig config. Can’t do that until we’ve first
+         * checked for a user provided size, since we may end up with
+         * both “size” and “pixelsize” being set, and we don’t know
+         * which one takes priority.
+         */
+        FcPattern *pat_copy = FcPatternDuplicate(pat);
+        if (pat_copy == NULL ||
+            !FcConfigSubstitute(NULL, pat_copy, FcMatchPattern))
+        {
+            LOG_WARN("%s: failed to do config substitution", pattern);
+        } else {
+            have_pt_size = FcPatternGetDouble(pat_copy, FC_SIZE, 0, &pt_size);
+            have_px_size = FcPatternGetInteger(pat_copy, FC_PIXEL_SIZE, 0, &px_size);
+        }
+
+        FcPatternDestroy(pat_copy);
+
+        if (have_pt_size != FcResultMatch && have_px_size != FcResultMatch)
+            pt_size = 12.0;
+    }
+
+    FcPatternRemove(pat, FC_SIZE, 0);
+    FcPatternRemove(pat, FC_PIXEL_SIZE, 0);
 
     char *stripped_pattern = (char *)FcNameUnparse(pat);
     FcPatternDestroy(pat);
+
+    LOG_DBG("%s: pt-size=%.2f, px-size=%d", stripped_pattern, pt_size, px_size);
 
     *spec = (struct font_spec){
         .pattern = stripped_pattern,

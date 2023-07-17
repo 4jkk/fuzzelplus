@@ -31,12 +31,13 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_CURSOR_LEFT] = "cursor-left",
     [BIND_ACTION_CURSOR_LEFT_WORD] = "cursor-left-word",
     [BIND_ACTION_CURSOR_RIGHT] = "cursor-right",
-    [BIND_ACTION_CURSOR_RIGHT_WORD] = "cursor-right_word",
+    [BIND_ACTION_CURSOR_RIGHT_WORD] = "cursor-right-word",
     [BIND_ACTION_DELETE_PREV] = "delete-prev",
     [BIND_ACTION_DELETE_PREV_WORD] = "delete-prev-word",
     [BIND_ACTION_DELETE_NEXT] = "delete-next",
     [BIND_ACTION_DELETE_NEXT_WORD] = "delete-next-word",
     [BIND_ACTION_DELETE_LINE] = "delete-line",
+    [BIND_ACTION_INSERT_SELECTED] = "insert-selected",
     [BIND_ACTION_MATCHES_EXECUTE] = "execute",
     [BIND_ACTION_MATCHES_EXECUTE_OR_NEXT] = "execute-or-next",
     [BIND_ACTION_MATCHES_PREV] = "prev",
@@ -45,6 +46,8 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_MATCHES_NEXT] = "next",
     [BIND_ACTION_MATCHES_NEXT_WITH_WRAP] = "next-with-wrap",
     [BIND_ACTION_MATCHES_NEXT_PAGE] = "next-page",
+    [BIND_ACTION_MATCHES_FIRST] = "first",
+    [BIND_ACTION_MATCHES_LAST] = "last",
 
     [BIND_ACTION_CUSTOM_1] = "custom-1",
     [BIND_ACTION_CUSTOM_2] = "custom-2",
@@ -752,10 +755,13 @@ parse_section_main(struct context *ctx)
             return false;
         }
 
-        conf->password = password_chars[0];
+        conf->password_mode.character = password_chars[0];
         free(password_chars);
         return true;
     }
+
+    else if (strcmp(key, "filter-desktop") == 0)
+        return value_to_bool(ctx, &conf->filter_desktop);
 
     else if (strcmp(key, "fuzzy") == 0)
         return value_to_bool(ctx, &conf->fuzzy.enabled);
@@ -1351,6 +1357,8 @@ add_default_key_bindings(struct config *conf)
 
         {BIND_ACTION_DELETE_LINE, m_ctrl, {{XKB_KEY_k}}},
 
+        {BIND_ACTION_INSERT_SELECTED, m_ctrl, {{XKB_KEY_Tab}}},
+
         {BIND_ACTION_MATCHES_EXECUTE, m_none, {{XKB_KEY_Return}}},
         {BIND_ACTION_MATCHES_EXECUTE, m_none, {{XKB_KEY_KP_Enter}}},
         {BIND_ACTION_MATCHES_EXECUTE, m_ctrl, {{XKB_KEY_y}}},
@@ -1369,6 +1377,9 @@ add_default_key_bindings(struct config *conf)
 
         {BIND_ACTION_MATCHES_NEXT_PAGE, m_none, {{XKB_KEY_Page_Down}}},
         {BIND_ACTION_MATCHES_NEXT_PAGE, m_none, {{XKB_KEY_KP_Page_Down}}},
+
+        {BIND_ACTION_MATCHES_FIRST, m_ctrl, {{XKB_KEY_Home}}},
+        {BIND_ACTION_MATCHES_LAST, m_ctrl, {{XKB_KEY_End}}},
 
         {BIND_ACTION_CUSTOM_1, m_alt, {{XKB_KEY_1}}},
         {BIND_ACTION_CUSTOM_2, m_alt, {{XKB_KEY_2}}},
@@ -1404,8 +1415,11 @@ config_load(struct config *conf, const char *conf_path,
     *conf = (struct config) {
         .output = NULL,
         .prompt = c32dup(U"> "),
-        .password = U'\0',
         .match_fields = MATCH_FILENAME | MATCH_NAME | MATCH_GENERIC,
+        .password_mode = {
+            .character = U'\0',
+            .enabled = false,
+        },
         .terminal = NULL,
         .launch_prefix = NULL,
         .font = strdup("monospace"),
