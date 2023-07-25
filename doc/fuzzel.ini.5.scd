@@ -302,7 +302,7 @@ done by setting _action=none_; e.g. *delete-line=none*.
 
 *cancel*
 	Quite fuzzel without executing anythingDefault: _Control+g
-	Control+c Escape_.
+	Control+c Control+[ Escape_.
 
 *execute*
 	Execute the currently selected entry. Or, in dmenu mode, print the
@@ -343,11 +343,11 @@ done by setting _action=none_; e.g. *delete-line=none*.
 	Control+e_.
 
 *delete-prev*
-	Deletes the **character before** the cursor. Default: _BackSpace_.
+	Deletes the **character before** the cursor. Default: _BackSpace Control+h_.
 
 *delete-prev-word*
 	Deletes the **word before** the cursor. Default: _Mod1+BackSpace
-	Control+BackSpace_.
+	Control+BackSpace Control+w_.
 
 *delete-next*
 	Deletes the **character after** the cursor. Default: _Delete_.
