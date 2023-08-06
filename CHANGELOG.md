@@ -32,8 +32,6 @@
   on the screen the window should generally be positioned), such as `top`,
   `top-left`, `bottom-right`, `center`, etc. Defaults to `center`
 
->>>>>>> 18a0bb86fed64632f9bedcce58d70e6c7a5a43c6
-
 ### Changed
 
 * Minimum required version of _wayland-protocols_ is now 1.32
