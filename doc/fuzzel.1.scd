@@ -106,17 +106,20 @@ or command line options:
 	Default: _not set_.
 
 *-a*,*--anchor*=_ANCHOR_
-	The window anchor. Default: _center_. Allowed options:
-	
-	- _top-left_
-	- _top_
-	- _top-right_
-	- _left_
-	- _center_
-	- _right_
-	- _bottom-left_
-	- _bottom_
-	- _bottom-right_
+	Set window anchor, i.e. where on screen the window will be displayed.
+	You can choose one from:
+
+	- top-left
+	- top
+	- top-right
+	- left
+	- center
+	- right
+	- bottom-left
+	- bottom
+	- bottom-right
+
+	Default: _center_
 
 *-l*,*--lines*=COUNT
 	The (maximum) number of matches to display. This dictates the
