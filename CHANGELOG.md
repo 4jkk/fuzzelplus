@@ -35,6 +35,12 @@
 ### Changed
 
 * Minimum required version of _wayland-protocols_ is now 1.32
+* Selection color is now painted over background color ([#255][255]).
+* Exact matches (of the application title) are now sorted first
+  ([#259][259]).
+
+[255]: https://codeberg.org/dnkl/fuzzel/issues/255
+[259]: https://codeberg.org/dnkl/fuzzel/issues/259
 
 
 ### Deprecated
@@ -43,8 +49,11 @@
 
 * Ignore whitespace in `.desktop` files’ key and name values
   ([#248][248]).
+* Desktop entries with `NoDisplay=true` being ignored unless they also
+  had `Name` and `Exec` set ([#253][253]).
 
 [248]: https://codeberg.org/dnkl/fuzzel/issues/248
+[253]: https://codeberg.org/dnkl/fuzzel/issues/253
 
 
 ### Security
