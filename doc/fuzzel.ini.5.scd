@@ -388,3 +388,4 @@ done by setting _action=none_; e.g. *delete-line=none*.
 
 *fuzzel*(1),
 *https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html*
+*https://codeberg.org/dnkl/fuzzel*
