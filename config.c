@@ -1410,6 +1410,7 @@ add_default_key_bindings(struct config *conf)
     static const struct config_key_binding bindings[] = {
         {BIND_ACTION_CANCEL, m_none, {{XKB_KEY_Escape}}},
         {BIND_ACTION_CANCEL, m_ctrl, {{XKB_KEY_g}}},
+        {BIND_ACTION_CANCEL, m_ctrl, {{XKB_KEY_bracketleft}}},
 
         {BIND_ACTION_CURSOR_HOME, m_none, {{XKB_KEY_Home}}},
         {BIND_ACTION_CURSOR_HOME, m_ctrl, {{XKB_KEY_a}}},
