@@ -256,6 +256,10 @@ All color values are in RGBA.
 *border*
 	Border color. Default: _002b36ff_.
 
+*prompt-text*
+	Text (foreground) color of the prompt (just the part configurable
+	in *main.prompt*). Default: _657b83ff_.
+
 
 # SECTION: border
 

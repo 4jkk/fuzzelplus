@@ -37,6 +37,7 @@ struct render {
     pixman_color_t pix_selection_color;
     pixman_color_t pix_selection_text_color;
     pixman_color_t pix_selection_match_color;
+    pixman_color_t pix_prompt_text_color;
 
     unsigned x_margin;
     unsigned y_margin;
@@ -208,7 +209,7 @@ render_prompt(const struct render *render, struct buffer *buf,
         if (run != NULL) {
             for (size_t i = 0; i < run->count; i++) {
                 const struct fcft_glyph *glyph = run->glyphs[i];
-                render_glyph(buf->pix, glyph, x, y, &render->pix_text_color);
+                render_glyph(buf->pix, glyph, x, y, &render->pix_prompt_text_color);
                 x += glyph->advance.x;
             }
             fcft_text_run_destroy(run);
@@ -760,6 +761,7 @@ render_init(const struct config *conf, mtx_t *icon_lock)
     render->pix_selection_color = rgba2pixman(render->conf->colors.selection);
     render->pix_selection_text_color = rgba2pixman(render->conf->colors.selection_text);
     render->pix_selection_match_color = rgba2pixman(render->conf->colors.selection_match);
+    render->pix_prompt_text_color = rgba2pixman(render->conf->colors.prompt_text);
     return render;
 }
 
