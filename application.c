@@ -1,5 +1,7 @@
 #include "application.h"
 
+#include "systemd.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -261,6 +263,8 @@ application_execute(const struct application *app, const struct prompt *prompt,
             /* And X11 startup notifications */
             setenv("DESKTOP_STARTUP_ID", xdg_activation_token, 1);
         }
+
+        put_pid_in_scope(getpid(), argv[0]);
 
         /* Redirect stdin/stdout/stderr -> /dev/null */
         int devnull_r = open("/dev/null", O_RDONLY | O_CLOEXEC);

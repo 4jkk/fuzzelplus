@@ -95,6 +95,11 @@ else
   nanosvg = declare_dependency()
 endif
 
+systemd = dependency('libsystemd', required : get_option('systemd'))
+if systemd.found()
+  add_project_arguments('-DHAVE_SYSTEMD', language: 'c')
+endif
+
 wayland_protocols_datadir = wayland_protocols.get_variable('pkgdatadir')
 
 wscanner = dependency('wayland-scanner', native: true)
@@ -151,6 +156,7 @@ executable(
   'prompt.c', 'prompt.h',
   'render.c', 'render.h',
   'shm.c', 'shm.h',
+  'systemd.c', 'systemd.h',
   'stride.h',
   'wayland.c', 'wayland.h',
   'xdg.c', 'xdg.h',
@@ -164,6 +170,7 @@ executable(
                  libpng,
                  librsvg,
                  nanosvg,
+                 systemd,
                  wayland_client,
                  wayland_cursor,
                  xkb,
