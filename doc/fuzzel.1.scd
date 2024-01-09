@@ -184,6 +184,12 @@ or command line options:
 *-C*,*--border-color*=_HEX_
 	The color of the border. See *COLORS*. Default: _002b36ff_.
 
+*--prompt-text-color*=_HEX_
+	The color of prompt's text. See *COLORS*. Default: _657b83ff_.
+
+*--input-text-color*=_HEX_
+	The color of text you type in. See *COLORS*. Default: _657b83ff_.
+
 *--show-actions*
 	Include desktop actions in the list. Desktop actions are
 	alternative actions some desktop entries have. Examples include
