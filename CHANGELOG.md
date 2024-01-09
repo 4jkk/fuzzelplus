@@ -26,8 +26,10 @@
 ## Unreleased
 ### Added
 
+* New config option `input-text` in `colors` and corresponding
+  `--input-text-color` allow setting text color of the user input.
 * New config option `prompt-text` in `colors` and corresponding
-  `--prompt-text-color` allow setting text color of the prompt
+  `--prompt-text-color` allow setting text color of the prompt.
 * Support for the `cursor-shape-v1` Wayland protocol.
 * New option `--anchor` allows setting the window position anchor
   (i.e. where on the screen the window should generally be
