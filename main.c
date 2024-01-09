@@ -268,6 +268,7 @@ print_usage(const char *prog_name)
            "  -r,--border-radius=INT         amount of corner \"roundness\" (10)\n"
            "  -C,--border-color=HEX          border color (ffffffff)\n"
            "     --prompt-text-color=HEX     prompt text color (657b83ff)\n"
+           "     --input-text-color=HEX      input text color (657b83ff)\n"
            "     --show-actions              include desktop actions in the list\n"
            "     --no-fuzzy                  disable fuzzy matching\n"
            "     --fuzzy-min-length=VALUE    search strings shorter than this will not be\n"
@@ -552,6 +553,7 @@ main(int argc, char *const *argv)
     #define OPT_CHECK_CONFIG                 275
     #define OPT_SELECT                       276
     #define OPT_PROMPT_TEXT_COLOR            278
+    #define OPT_INPUT_TEXT_COLOR             279
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0,  OPT_CONFIG},
@@ -582,6 +584,7 @@ main(int argc, char *const *argv)
         {"border-color",         required_argument, 0, 'C'},
         {"prompt",               required_argument, 0, 'p'},
         {"prompt-text-color",    required_argument, 0, OPT_PROMPT_TEXT_COLOR},
+        {"input-text-color",     required_argument, 0, OPT_INPUT_TEXT_COLOR},
         {"terminal",             required_argument, 0, 'T'},
         {"show-actions",         no_argument,       0, OPT_SHOW_ACTIONS},
         {"filter-desktop",       optional_argument, 0, OPT_FILTER_DESKTOP},
@@ -640,6 +643,7 @@ main(int argc, char *const *argv)
         bool border_size_set:1;
         bool border_radius_set:1;
         bool prompt_text_color_set:1;
+        bool input_text_color_set:1;
         bool actions_enabled_set:1;
         bool filter_desktop_set:1;
         bool fuzzy_set:1;
@@ -1193,6 +1197,24 @@ main(int argc, char *const *argv)
             break;
         }
 
+        case OPT_INPUT_TEXT_COLOR: {
+            const char *clr_start = optarg;
+            if (clr_start[0] == '#')
+                clr_start++;
+
+            errno = 0;
+            char *end = NULL;
+            uint32_t input_text_color = strtoul(clr_start, &end, 16);
+            if (errno != 0 || end == NULL || *end != '\0' || (end - clr_start) != 8) {
+                fprintf(stderr, "input-text-color: %s: invalid color\n", optarg);
+                return EXIT_FAILURE;
+            }
+            cmdline_overrides.conf.colors.input_text =
+                conf_hex_to_rgba(input_text_color);
+            cmdline_overrides.input_text_color_set = true;
+            break;
+        }
+
         case OPT_LOG_NO_SYSLOG:
             log_syslog = false;
             break;
@@ -1314,6 +1336,9 @@ main(int argc, char *const *argv)
     }
     if (cmdline_overrides.prompt_text_color_set) {
         conf.colors.prompt_text = cmdline_overrides.conf.colors.prompt_text;
+    }
+    if (cmdline_overrides.input_text_color_set) {
+        conf.colors.input_text = cmdline_overrides.conf.colors.input_text;
     }
     if (cmdline_overrides.filter_desktop_set)
         conf.filter_desktop = cmdline_overrides.conf.filter_desktop;

@@ -977,6 +977,9 @@ parse_section_colors(struct context *ctx)
     else if (strcmp(key, "prompt-text") == 0)
         return value_to_color(ctx, true, &conf->colors.prompt_text);
 
+    else if (strcmp(key, "input-text") == 0)
+        return value_to_color(ctx, true, &conf->colors.input_text);
+
     else
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
 
@@ -1550,6 +1553,7 @@ config_load(struct config *conf, const char *conf_path,
             .selection_text = conf_hex_to_rgba(0x657b83ff),
             .selection_match = conf_hex_to_rgba(0xcb4b16ff),
             .prompt_text = conf_hex_to_rgba(0x657b83ff),
+            .input_text= conf_hex_to_rgba(0x657b83ff),
         },
         .border = {
             .size = 1u,

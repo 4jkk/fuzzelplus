@@ -149,6 +149,7 @@ struct config {
         struct rgba selection_text;
         struct rgba selection_match;
         struct rgba prompt_text;
+        struct rgba input_text;
     } colors;
 
     struct {
