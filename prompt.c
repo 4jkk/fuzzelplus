@@ -263,3 +263,16 @@ prompt_erase_after_cursor(struct prompt *prompt)
     prompt->text[prompt->cursor] = U'\0';
     return true;
 }
+
+bool
+prompt_erase_before_cursor(struct prompt *prompt)
+{
+    size_t offset = 0;
+    while (prompt->text[offset + prompt->cursor] != U'\0') {
+        prompt->text[offset] = prompt->text[offset + prompt->cursor];
+        offset++;
+    }
+    prompt->text[offset] = U'\0';
+    prompt->cursor = 0;
+    return true;
+}
