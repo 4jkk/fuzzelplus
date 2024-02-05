@@ -40,6 +40,8 @@
 * `include=<path>` option to `fuzzel.ini` ([#205][205]).
 * New option `--list-executables-in-path` add executables presents in
   the $PATH variable to the list ([#284][284]).
+* New key binding: `delete-prev-line` which corresponds to C-u in bash.
+  Also renames `delete-line` to `delete-next-line` ([#307][307]). 
 
 [130]: https://codeberg.org/dnkl/fuzzel/issues/130
 [264]: https://codeberg.org/dnkl/fuzzel/issues/264
