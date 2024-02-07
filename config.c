@@ -46,10 +46,10 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_CURSOR_RIGHT_WORD] = "cursor-right-word",
     [BIND_ACTION_DELETE_PREV] = "delete-prev",
     [BIND_ACTION_DELETE_PREV_WORD] = "delete-prev-word",
-    [BIND_ACTION_DELETE_PREV_LINE] = "delete-prev-line",
+    [BIND_ACTION_DELETE_LINE_BACKWARD] = "delete-line-backward",
     [BIND_ACTION_DELETE_NEXT] = "delete-next",
     [BIND_ACTION_DELETE_NEXT_WORD] = "delete-next-word",
-    [BIND_ACTION_DELETE_NEXT_LINE] = "delete-next-line",
+    [BIND_ACTION_DELETE_LINE_FORWARD] = "delete-line-forward",
     [BIND_ACTION_INSERT_SELECTED] = "insert-selected",
     [BIND_ACTION_MATCHES_EXECUTE] = "execute",
     [BIND_ACTION_MATCHES_EXECUTE_OR_NEXT] = "execute-or-next",
@@ -1446,8 +1446,8 @@ add_default_key_bindings(struct config *conf)
         {BIND_ACTION_DELETE_NEXT_WORD, m_ctrl, {{XKB_KEY_Delete}}},
         {BIND_ACTION_DELETE_NEXT_WORD, m_ctrl, {{XKB_KEY_KP_Delete}}},
 
-        {BIND_ACTION_DELETE_PREV_LINE, m_ctrl, {{XKB_KEY_u}}},
-        {BIND_ACTION_DELETE_NEXT_LINE, m_ctrl, {{XKB_KEY_k}}},
+        {BIND_ACTION_DELETE_LINE_BACKWARD, m_ctrl, {{XKB_KEY_u}}},
+        {BIND_ACTION_DELETE_LINE_FORWARD, m_ctrl, {{XKB_KEY_k}}},
 
         {BIND_ACTION_INSERT_SELECTED, m_ctrl, {{XKB_KEY_Tab}}},
 
