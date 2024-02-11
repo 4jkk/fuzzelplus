@@ -270,7 +270,9 @@ prompt_erase_before_cursor(struct prompt *prompt)
     if (prompt->cursor == 0) {
       return false;
     }
-    c32cpy(&prompt->text[0], &prompt->text[prompt->cursor]);
+    memmove(&prompt->text[0],
+            &prompt->text[prompt->cursor],
+            (c32len(prompt->text) - prompt->cursor + 1) * sizeof(char32_t));
     prompt->cursor = 0;
     return true;
 }
