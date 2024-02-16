@@ -148,6 +148,10 @@ or command line options:
 	Vertical padding between prompt and match list. In pixels, subject to
 	output scaling. Default: _0_.
 
+*--icon-pad*=_PAD_
+	Icon padding between icon and text. In pixels, subject to
+	output scaling. Default: _0_.
+
 *-b*,*--background*=_HEX_
 	Background color. See *COLORS*. Default: _fdf6e3dd_.
 
