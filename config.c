@@ -908,6 +908,9 @@ parse_section_main(struct context *ctx)
 
     else if (strcmp(key, "inner-pad") == 0)
         return value_to_uint32(ctx, 10, &conf->pad.inner);
+    
+    else if (strcmp(key, "icon-pad") == 0)
+        return value_to_uint32(ctx, 10, &conf->pad.icon);
 
     else if (strcmp(key, "line-height") == 0)
         return value_to_pt_or_px(ctx, &conf->line_height);

@@ -820,6 +820,7 @@ render_set_font(struct render *render, struct fcft_font *font,
              0)
          * render->conf->chars) +
         x_margin +
+        icon_pad + 
         border_size;
 
     LOG_DBG("x-margin: %d, y-margin: %d, border: %d, row-height: %d, "
