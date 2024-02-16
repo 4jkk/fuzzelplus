@@ -138,6 +138,7 @@ struct config {
         unsigned x;
         unsigned y;
         unsigned inner;
+        unsigned icon;
     } pad;
 
     struct {

@@ -257,6 +257,7 @@ print_usage(const char *prog_name)
            "     --tabs=INT                  number of spaces a tab is expanded to (8)\n"
            "  -x,--horizontal-pad=PAD        horizontal padding, in pixels (40)\n"
            "  -y,--vertical-pad=PAD          vertical padding, in pixels (8)\n"
+           "     --icon-pad=PAD              padding between icon and text, in pixels (?)\n"
            "  -P,--inner-pad=PAD             vertical padding between prompt and match list,\n"
            "                                 in pixels (0)\n"
            "  -b,--background-color=HEX      background color (000000ff)\n"
@@ -556,6 +557,7 @@ main(int argc, char *const *argv)
     #define OPT_CHECK_CONFIG                 275
     #define OPT_SELECT                       276
     #define OPT_LIST_EXECS_IN_PATH           277
+    #define OPT_ICON_PAD                     278
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0,  OPT_CONFIG},
@@ -575,6 +577,7 @@ main(int argc, char *const *argv)
         {"horizontal-pad",       required_argument, 0, 'x'},
         {"vertical-pad",         required_argument, 0, 'y'},
         {"inner-pad",            required_argument, 0, 'P'},
+        {"icon-pad",             required_argument, 0,  OPT_ICON_PAD},
         {"background-color",     required_argument, 0, 'b'},
         {"text-color",           required_argument, 0, 't'},
         {"match-color",          required_argument, 0, 'm'},
@@ -634,6 +637,7 @@ main(int argc, char *const *argv)
         bool pad_x_set:1;
         bool pad_y_set:1;
         bool pad_inner_set:1;
+        bool pad_icon_set:1;
         bool background_color_set:1;
         bool text_color_set:1;
         bool match_color_set:1;
@@ -868,6 +872,14 @@ main(int argc, char *const *argv)
                 return EXIT_FAILURE;
             }
             cmdline_overrides.pad_y_set = true;
+            break;
+
+        case OPT_ICON_PAD:
+            if (sscanf(optarg, "%u", &cmdline_overrides.conf.pad.icon) != 1) {
+                fprintf(stderr, "%s: invalid padding\n", optarg);
+                return EXIT_FAILURE;
+            }
+            cmdline_overrides.pad_icon_set = true;
             break;
 
         case 'P':
@@ -1275,6 +1287,8 @@ main(int argc, char *const *argv)
         conf.pad.y = cmdline_overrides.conf.pad.y;
     if (cmdline_overrides.pad_inner_set)
         conf.pad.inner = cmdline_overrides.conf.pad.inner;
+    if (cmdline_overrides.pad_icon_set)
+        conf.pad.icon = cmdline_overrides.conf.pad.icon;
     if (cmdline_overrides.background_color_set)
         conf.colors.background = cmdline_overrides.conf.colors.background;
     if (cmdline_overrides.text_color_set)

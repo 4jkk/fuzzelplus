@@ -44,6 +44,7 @@ struct render {
     unsigned border_size;
     unsigned row_height;
     unsigned icon_height;
+    unsigned icon_pad;
 
     mtx_t *icon_lock;
 };
@@ -696,9 +697,9 @@ render_match_list(const struct render *render, struct buffer *buf,
 
         cur_x +=
             (render->conf->icons_enabled && matches_have_icons(matches)
-             ? (row_height +
+             ? (row_height + render->icon_pad +
                 (space != NULL ? space->advance.x : font->max_advance.x))
-             : 0) +
+             : 0) +  
             pt_or_px_as_pixels(render, &render->conf->letter_spacing);
 
         /* Replace newlines in title, with spaces (basic support for
@@ -792,6 +793,7 @@ render_set_font(struct render *render, struct fcft_font *font,
     const unsigned x_margin = render->conf->pad.x * scale;
     const unsigned y_margin = render->conf->pad.y * scale;
     const unsigned inner_pad = render->conf->pad.inner * scale;
+    const unsigned icon_pad = render->conf->pad.icon * scale;
 
     const unsigned border_size = render->conf->border.size * scale;
 
@@ -831,6 +833,7 @@ render_set_font(struct render *render, struct fcft_font *font,
     render->border_size = border_size;
     render->row_height = row_height;
     render->icon_height = icon_height;
+    render->icon_pad = icon_pad;
 
     if (new_width != NULL)
         *new_width = width;
