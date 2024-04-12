@@ -132,7 +132,9 @@ parse_desktop_file(int fd, char *id, const char32_t *file_basename,
         }
 
         if (len == 0) {
-            free(line);
+            if (line[0] != '\0') {
+                free(line);
+            }
             continue;
         }
 
