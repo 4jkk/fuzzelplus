@@ -121,6 +121,12 @@ or command line options:
 	
 	Default: _center_
 
+*--x-margin*=_MARGIN_
+	Horizontal margin away from the anchor point in pixels. Default: _0_.
+
+*--y-margin*=_MARGIN_
+	Vertical margin away from the anchor point in pixels. Default: _0_.
+	
 *select*=_STRING_
 	Select the first entry that matches the given string (case
 	insensitive).

@@ -174,6 +174,12 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	
 	Default: _center_
 
+*x-margin*
+	Horizontal margin away from the anchor point in pixels. Default: _0_.
+
+*y-margin*
+	Vertical margin away from the anchor point in pixels. Default: _0_.
+	 
 *lines*
 	Number of matches to show. Default: _15_.
 
