@@ -578,7 +578,6 @@ main(int argc, char *const *argv)
     #define OPT_X_MARGIN                     278
     #define OPT_Y_MARGIN                     279
 
-
     static const struct option longopts[] = {
         {"config",               required_argument, 0,  OPT_CONFIG},
         {"check-config",         no_argument,       0,  OPT_CHECK_CONFIG},

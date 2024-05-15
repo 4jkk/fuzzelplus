@@ -179,7 +179,7 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 
 *y-margin*
 	Vertical margin away from the anchor point in pixels. Default: _0_.
-	 
+
 *lines*
 	Number of matches to show. Default: _15_.
 
