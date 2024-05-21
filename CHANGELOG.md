@@ -30,6 +30,11 @@
 ### Added
 
 * Nanosvg updated to 93ce879dc4c04a3ef1758428ec80083c38610b1f
+* New options `--x-margin` `--y-margin` which place the launcher some
+  distance away from the anchor point, in pixels. Default to 0
+  ([#345][345]).
+
+[345]: https://codeberg.org/dnkl/fuzzel/pulls/345
 
 
 ### Changed
