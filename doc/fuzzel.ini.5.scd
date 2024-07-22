@@ -411,6 +411,9 @@ done by setting _action=none_; e.g. *delete-line-forward=none*.
 *last*
 	Select the last entry, on the last page. Default: _Control+End_.
 
+*mouse-listener*
+	Allows selecting elements with the mouse
+
 *custom-1*, *custom-2*, ..., *custom-19*
 	Execute the currently selected entry, then exit with a non-zero
 	exit code. *custom-1* exits with exit code 10, *custom-2* with 11,

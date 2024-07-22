@@ -1064,13 +1064,16 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
 {
 	struct seat *seat = data;
     struct wayland *wayl = seat->wayl;
-    bool refresh = false;
 
-    refresh = matches_selected_select_idx(wayl->matches,
-            render_get_row_num(wayl->render, wl_fixed_to_int(surface_y)));
+    if (wayl->conf->mouse_listener) {
+        bool refresh = false;
 
-    if (refresh) {
-        wayl_refresh(wayl);
+        refresh = matches_selected_select_idx(wayl->matches,
+                render_get_row_num(wayl->render, wl_fixed_to_int(surface_y)));
+
+        if (refresh) {
+            wayl_refresh(wayl);
+        }
     }
 }
 
@@ -1081,16 +1084,18 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
     struct seat *seat = data;
     struct wayland *wayl = seat->wayl;
 
-    // Button release
-    if (state == 0) {
-        // Left click
-        if (button == 272) {
-            execute_selected(seat, false, -1);
-        // Right click
-        } else if (button == 273) {
-            wayl->status = EXIT;
-            if (wayl->conf->dmenu.enabled)
-                wayl->exit_code = 2;
+    if (wayl->conf->mouse_listener) {
+        // Button release
+        if (state == 0) {
+            // Left click
+            if (button == 0x110) {
+                execute_selected(seat, false, -1);
+            // Right click
+            } else if (button == 0x111) {
+                wayl->status = EXIT;
+                if (wayl->conf->dmenu.enabled)
+                    wayl->exit_code = 2;
+            }
         }
     }
 }
@@ -1102,15 +1107,18 @@ wl_pointer_axis(void *data, struct wl_pointer *wl_pointer,
     struct seat *seat = data;
     struct wayland *wayl = seat->wayl;
 
-    bool refresh = false;
-    if (value < 0) {
-        refresh = matches_selected_prev_page(wayl->matches);
-    } else if (value > 0) {
-        refresh = matches_selected_next_page(wayl->matches);
-    }
+    if (wayl->conf->mouse_listener) {
+        bool refresh = false;
 
-    if (refresh) {
-        wayl_refresh(wayl);
+        if (value < 0) {
+            refresh = matches_selected_prev_page(wayl->matches);
+        } else if (value > 0) {
+            refresh = matches_selected_next_page(wayl->matches);
+        }
+
+        if (refresh) {
+            wayl_refresh(wayl);
+        }
     }
 }
 

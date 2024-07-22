@@ -302,6 +302,10 @@ or command line options:
 *--log-no-syslog*
 	Disables syslog logging. Logging is only done on stderr.
 
+*--mouse*
+	Allows choosing items with mouse left click, and cancelling fuzzel with
+	right click.
+
 *-v*,*--version*
 	Show the version number and quit
 

@@ -362,6 +362,9 @@ matches_selected_select(struct matches *matches, const char *_string)
 bool
 matches_selected_select_idx(struct matches *matches, size_t idx)
 {
+    if (idx < 0)
+        return false;
+
     const size_t page_no = matches_get_page(matches);
     const size_t items_on_page __attribute__((unused)) = matches_get_count(matches);
 
@@ -370,6 +373,7 @@ matches_selected_select_idx(struct matches *matches, size_t idx)
         "match-count: %zu",
         matches->page_count, page_no, items_on_page, idx,
         matches->max_matches_per_page, matches->match_count);
+
 
     if (idx >= items_on_page)
         return false;
