@@ -1062,18 +1062,56 @@ static void
 wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
                   uint32_t time, wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
+	struct seat *seat = data;
+    struct wayland *wayl = seat->wayl;
+    bool refresh = false;
+
+    refresh = matches_selected_select_idx(wayl->matches,
+            render_get_row_num(wayl->render, wl_fixed_to_int(surface_y)));
+
+    if (refresh) {
+        wayl_refresh(wayl);
+    }
 }
 
 static void
 wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
                   uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
 {
+    struct seat *seat = data;
+    struct wayland *wayl = seat->wayl;
+
+    // Button release
+    if (state == 0) {
+        // Left click
+        if (button == 272) {
+            execute_selected(seat, false, -1);
+        // Right click
+        } else if (button == 273) {
+            wayl->status = EXIT;
+            if (wayl->conf->dmenu.enabled)
+                wayl->exit_code = 2;
+        }
+    }
 }
 
 static void
 wl_pointer_axis(void *data, struct wl_pointer *wl_pointer,
                 uint32_t time, uint32_t axis, wl_fixed_t value)
 {
+    struct seat *seat = data;
+    struct wayland *wayl = seat->wayl;
+
+    bool refresh = false;
+    if (value < 0) {
+        refresh = matches_selected_prev_page(wayl->matches);
+    } else if (value > 0) {
+        refresh = matches_selected_next_page(wayl->matches);
+    }
+
+    if (refresh) {
+        wayl_refresh(wayl);
+    }
 }
 
 static void

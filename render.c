@@ -873,3 +873,22 @@ render_destroy(struct render *render)
     fcft_destroy(render->font);
     free(render);
 }
+
+int render_get_row_num(const struct render *render, int y)
+{
+    const float scale = render->scale;
+    const int y_margin = render->y_margin;
+    const int inner_pad = render->inner_pad;
+    const int border_size = render->border_size;
+    const int row_height = render->row_height;
+    const int first_row = 1 * border_size + y_margin + row_height + inner_pad;
+
+    y = floor(scale * y);
+
+    if (y <= first_row) {
+        return -1;
+    } else {
+        y -= first_row;
+        return y / row_height;
+    }
+}

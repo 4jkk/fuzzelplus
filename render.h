@@ -30,3 +30,5 @@ void render_match_list(
     const struct prompt *prompt, const struct matches *matches);
 
 int render_icon_size(const struct render *render);
+
+int render_get_row_num(const struct render *render, int y);

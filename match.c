@@ -360,6 +360,30 @@ matches_selected_select(struct matches *matches, const char *_string)
 }
 
 bool
+matches_selected_select_idx(struct matches *matches, size_t idx)
+{
+    const size_t page_no = matches_get_page(matches);
+    const size_t items_on_page __attribute__((unused)) = matches_get_count(matches);
+
+    LOG_DBG(
+        "page-count: %zu, page-no: %zu, items-on-page: %zu, idx: %zu, max: %zu, "
+        "match-count: %zu",
+        matches->page_count, page_no, items_on_page, idx,
+        matches->max_matches_per_page, matches->match_count);
+
+    if (idx >= items_on_page)
+        return false;
+
+    idx += page_no * matches->max_matches_per_page;
+
+    if (idx >= matches->match_count)
+        return false;
+
+    matches->selected = idx;
+    return true;
+}
+
+bool
 matches_selected_first(struct matches *matches)
 {
     if (matches->match_count <= 0 || matches->selected <= 0)
