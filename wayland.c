@@ -1068,6 +1068,8 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
     if (wayl->conf->mouse_listener) {
         bool refresh = false;
 
+        seat->pointer.y = wl_fixed_to_int(surface_y);
+
         refresh = matches_selected_select_idx(wayl->matches,
                 render_get_row_num(wayl->render, wl_fixed_to_int(surface_y)));
 
@@ -1088,7 +1090,7 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
         // Button release
         if (state == 0) {
             // Left click
-            if (button == 0x110) {
+            if (button == 0x110 && render_get_row_num(wayl->render, seat->pointer.y) >= 0) {
                 execute_selected(seat, false, -1);
             // Right click
             } else if (button == 0x111) {
