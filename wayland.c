@@ -148,6 +148,8 @@ struct seat {
         struct wl_cursor_theme *theme;
         struct wl_cursor *cursor;
         float scale;
+
+        size_t hovered_row_idx;
     } pointer;
 };
 
@@ -1059,12 +1061,10 @@ wl_pointer_leave(void *data, struct wl_pointer *wl_pointer,
 }
 
 static void
-select_hovered_match(struct wayland *wayl, int y)
+select_hovered_match(struct wayland *wayl, size_t idx)
 {
     bool refresh = false;
-
-    refresh = matches_selected_select_idx(wayl->matches,
-            render_get_row_num(wayl->render, y, matches_get_count(wayl->matches)));
+    refresh = matches_selected_select_idx(wayl->matches,idx);
 
     if (refresh) {
         wayl_refresh(wayl);
@@ -1079,8 +1079,11 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
     struct wayland *wayl = seat->wayl;
 
     if (wayl->conf->mouse_listener) {
-        seat->pointer.y = wl_fixed_to_int(surface_y);
-        select_hovered_match(wayl, seat->pointer.y);
+        seat->pointer.hovered_row_idx =
+            render_get_row_num(wayl->render,
+                    wl_fixed_to_int(surface_y),
+                    matches_get_count(wayl->matches));
+        select_hovered_match(wayl, seat->pointer.hovered_row_idx);
     }
 }
 
@@ -1095,8 +1098,7 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
         // Button release
         if (state == 0) {
             // Left click
-            if (button == 0x110 &&
-                    render_get_row_num(wayl->render, seat->pointer.y, matches_get_count(wayl->matches)) != -1) {
+            if (button == 0x110 && seat->pointer.hovered_row_idx != -1) {
                 execute_selected(seat, false, -1);
             // Right click
             } else if (button == 0x111) {
@@ -1125,7 +1127,7 @@ wl_pointer_axis(void *data, struct wl_pointer *wl_pointer,
         }
 
         if (refresh) {
-            select_hovered_match(wayl, seat->pointer.y);
+            select_hovered_match(wayl, seat->pointer.hovered_row_idx);
         }
     }
 }
