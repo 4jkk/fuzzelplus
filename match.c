@@ -278,8 +278,8 @@ matches_get_page(const struct matches *matches)
         : matches->selected;
 }
 
-const struct match *
-matches_get(const struct matches *matches, size_t idx)
+size_t
+match_get_idx(const struct matches *matches, size_t idx)
 {
     const size_t page_no = matches_get_page(matches);
     const size_t items_on_page __attribute__((unused)) = matches_get_count(matches);
@@ -290,11 +290,17 @@ matches_get(const struct matches *matches, size_t idx)
         matches->page_count, page_no, items_on_page, idx,
         matches->max_matches_per_page, matches->match_count);
 
-    assert(idx < items_on_page);
+    assert(idx >= 0 && idx < items_on_page);
     idx += page_no * matches->max_matches_per_page;
 
     assert(idx < matches->match_count);
-    return &matches->matches[idx];
+    return idx;
+}
+
+const struct match *
+matches_get(const struct matches *matches, size_t idx)
+{
+    return &matches->matches[match_get_idx(matches, idx)];
 }
 
 const struct match *
@@ -362,28 +368,10 @@ matches_selected_select(struct matches *matches, const char *_string)
 bool
 matches_selected_select_idx(struct matches *matches, size_t idx)
 {
-    if (idx < 0)
+    if (idx == -1)
         return false;
 
-    const size_t page_no = matches_get_page(matches);
-    const size_t items_on_page __attribute__((unused)) = matches_get_count(matches);
-
-    LOG_DBG(
-        "page-count: %zu, page-no: %zu, items-on-page: %zu, idx: %zu, max: %zu, "
-        "match-count: %zu",
-        matches->page_count, page_no, items_on_page, idx,
-        matches->max_matches_per_page, matches->match_count);
-
-
-    if (idx >= items_on_page)
-        return false;
-
-    idx += page_no * matches->max_matches_per_page;
-
-    if (idx >= matches->match_count)
-        return false;
-
-    matches->selected = idx;
+    matches->selected = match_get_idx(matches, idx);
     return true;
 }
 

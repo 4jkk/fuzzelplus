@@ -874,7 +874,8 @@ render_destroy(struct render *render)
     free(render);
 }
 
-int render_get_row_num(const struct render *render, int y)
+size_t
+render_get_row_num(const struct render *render, int y, size_t match_count)
 {
     const float scale = render->scale;
     const int y_margin = render->y_margin;
@@ -882,13 +883,16 @@ int render_get_row_num(const struct render *render, int y)
     const int border_size = render->border_size;
     const int row_height = render->row_height;
     const int first_row = 1 * border_size + y_margin + row_height + inner_pad;
+    const int last_row = first_row + match_count*row_height;
 
     y = floor(scale * y);
 
-    if (y <= first_row) {
-        return -1;
-    } else {
+    size_t row = -1;
+
+    if (y >= first_row && y < last_row) {
         y -= first_row;
-        return y / row_height;
+        row = y / row_height;
     }
+
+    return row;
 }
