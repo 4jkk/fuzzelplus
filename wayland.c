@@ -1079,11 +1079,14 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
     struct wayland *wayl = seat->wayl;
 
     if (wayl->conf->mouse_listener) {
-        seat->pointer.hovered_row_idx =
+        size_t hovered_row =
             render_get_row_num(wayl->render,
                     wl_fixed_to_int(surface_y),
                     matches_get_count(wayl->matches));
-        select_hovered_match(wayl, seat->pointer.hovered_row_idx);
+        if (hovered_row != seat->pointer.hovered_row_idx) {
+            seat->pointer.hovered_row_idx = hovered_row;
+            select_hovered_match(wayl, seat->pointer.hovered_row_idx);
+        }
     }
 }
 

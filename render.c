@@ -839,7 +839,7 @@ render_set_font(struct render *render, struct fcft_font *font,
         border_size;
 
     LOG_DBG("x-margin: %d, y-margin: %d, border: %d, row-height: %d, "
-            "icon-height: %d, height: %d, width: %d, scale: %d",
+            "icon-height: %d, height: %d, width: %d, scale: %f",
             x_margin, y_margin, border_size, row_height, icon_height,
             height, width, scale);
 
