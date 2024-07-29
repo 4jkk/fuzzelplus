@@ -170,8 +170,6 @@ struct config {
     bool exit_on_kb_focus_loss;
 
     bool list_executables_in_path;
-
-    bool mouse_listener;
 };
 
 typedef tll(char *) config_override_t;

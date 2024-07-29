@@ -16,6 +16,7 @@
 #include <wayland-cursor.h>
 #include <wayland-util.h>
 
+#include <linux/input-event-codes.h>
 #include <xkbcommon/xkbcommon.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include <xkbcommon/xkbcommon-compose.h>
@@ -142,14 +143,13 @@ struct seat {
 
         int x;
         int y;
+        size_t hovered_row_idx;
 
         struct wl_surface *surface;
         struct wp_viewport *viewport;
         struct wl_cursor_theme *theme;
         struct wl_cursor *cursor;
         float scale;
-
-        size_t hovered_row_idx;
     } pointer;
 };
 
@@ -706,7 +706,7 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
         return true;
 
     case BIND_ACTION_MATCHES_PREV_PAGE:
-        *refresh = matches_selected_prev_page(wayl->matches);
+        *refresh = matches_selected_prev_page(wayl->matches, false);
         return true;
 
     case BIND_ACTION_MATCHES_NEXT:
@@ -718,7 +718,7 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
         return true;
 
     case BIND_ACTION_MATCHES_NEXT_PAGE:
-        *refresh = matches_selected_next_page(wayl->matches);
+        *refresh = matches_selected_next_page(wayl->matches, false);
         return true;
 
     case BIND_ACTION_MATCHES_FIRST:
@@ -1061,12 +1061,22 @@ wl_pointer_leave(void *data, struct wl_pointer *wl_pointer,
 }
 
 static void
-select_hovered_match(struct wayland *wayl, size_t idx)
+select_hovered_match(struct seat *seat, bool refresh_always)
 {
+    struct wayland *wayl = seat->wayl;
     bool refresh = false;
-    refresh = matches_selected_select_idx(wayl->matches,idx);
 
-    if (refresh) {
+    size_t hovered_row =
+        render_get_row_num(wayl->render,
+                seat->pointer.y,
+                wayl->matches);
+ 
+    if (hovered_row != seat->pointer.hovered_row_idx) {
+        seat->pointer.hovered_row_idx = hovered_row;
+        refresh = matches_idx_select(wayl->matches,hovered_row);
+    }
+
+    if (refresh_always || refresh) {
         wayl_refresh(wayl);
     }
 }
@@ -1076,18 +1086,11 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
                   uint32_t time, wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
 	struct seat *seat = data;
-    struct wayland *wayl = seat->wayl;
 
-    if (wayl->conf->mouse_listener) {
-        size_t hovered_row =
-            render_get_row_num(wayl->render,
-                    wl_fixed_to_int(surface_y),
-                    matches_get_count(wayl->matches));
-        if (hovered_row != seat->pointer.hovered_row_idx) {
-            seat->pointer.hovered_row_idx = hovered_row;
-            select_hovered_match(wayl, seat->pointer.hovered_row_idx);
-        }
-    }
+    seat->pointer.x = wl_fixed_to_int(surface_x);
+    seat->pointer.y = wl_fixed_to_int(surface_y);
+ 
+    select_hovered_match(seat, false);
 }
 
 static void
@@ -1097,18 +1100,14 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
     struct seat *seat = data;
     struct wayland *wayl = seat->wayl;
 
-    if (wayl->conf->mouse_listener) {
-        // Button release
-        if (state == 0) {
-            // Left click
-            if (button == 0x110 && seat->pointer.hovered_row_idx != -1) {
-                execute_selected(seat, false, -1);
-            // Right click
-            } else if (button == 0x111) {
-                wayl->status = EXIT;
-                if (wayl->conf->dmenu.enabled)
-                    wayl->exit_code = 2;
-            }
+    if (state == WL_POINTER_BUTTON_STATE_RELEASED) {
+        if (button == BTN_LEFT && seat->pointer.hovered_row_idx != -1) {
+            execute_selected(seat, false, -1);
+        } else if (button == BTN_RIGHT) {
+            // Same as pressing ESC
+            wayl->status = EXIT;
+            if (wayl->conf->dmenu.enabled)
+                wayl->exit_code = 2;
         }
     }
 }
@@ -1119,19 +1118,16 @@ wl_pointer_axis(void *data, struct wl_pointer *wl_pointer,
 {
     struct seat *seat = data;
     struct wayland *wayl = seat->wayl;
+    bool refresh = false;
 
-    if (wayl->conf->mouse_listener) {
-        bool refresh = false;
+    if (value < 0) {
+        refresh = matches_selected_prev_page(wayl->matches, true);
+    } else if (value > 0) {
+        refresh = matches_selected_next_page(wayl->matches, true);
+    }
 
-        if (value < 0) {
-            refresh = matches_selected_prev_page(wayl->matches);
-        } else if (value > 0) {
-            refresh = matches_selected_next_page(wayl->matches);
-        }
-
-        if (refresh) {
-            select_hovered_match(wayl, seat->pointer.hovered_row_idx);
-        }
+    if (refresh) {
+        select_hovered_match(seat, true);
     }
 }
 

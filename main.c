@@ -582,7 +582,6 @@ main(int argc, char *const *argv)
     #define OPT_LIST_EXECS_IN_PATH           277
     #define OPT_X_MARGIN                     278
     #define OPT_Y_MARGIN                     279
-    #define OPT_MOUSE_LISTENER               280
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0,  OPT_CONFIG},
@@ -627,7 +626,6 @@ main(int argc, char *const *argv)
         {"layer",                required_argument, 0, OPT_LAYER},
         {"no-exit-on-keyboard-focus-loss", no_argument, 0, OPT_NO_EXIT_ON_KB_LOSS},
         {"list-executables-in-path",       no_argument, 0, OPT_LIST_EXECS_IN_PATH},
-        {"mouse",                      no_argument, 0, OPT_MOUSE_LISTENER},
 
         /* dmenu mode */
         {"dmenu",                no_argument,       0, 'd'},
@@ -689,7 +687,6 @@ main(int argc, char *const *argv)
         bool dmenu_delim_set:1;
         bool layer_set:1;
         bool no_exit_on_keyboard_focus_loss_set:1;
-        bool mouse_listener_set:1;
     } cmdline_overrides = {{0}};
 
     setlocale(LC_CTYPE, "");
@@ -1154,11 +1151,6 @@ main(int argc, char *const *argv)
             cmdline_overrides.conf.list_executables_in_path = true;
             break;
 
-        case OPT_MOUSE_LISTENER:
-            cmdline_overrides.conf.mouse_listener = true;
-            cmdline_overrides.mouse_listener_set = true;
-            break;
-
         case 'H': { /* line-height */
             if (!pt_or_px_from_string(optarg, &cmdline_overrides.conf.line_height))
                 return EXIT_FAILURE;
@@ -1398,8 +1390,6 @@ main(int argc, char *const *argv)
         conf.dmenu.exit_immediately_if_empty = cmdline_overrides.conf.dmenu.exit_immediately_if_empty;
     if (cmdline_overrides.conf.list_executables_in_path)
         conf.list_executables_in_path = cmdline_overrides.conf.list_executables_in_path;
-    if (cmdline_overrides.mouse_listener_set)
-        conf.mouse_listener = cmdline_overrides.conf.mouse_listener;
 
     _Static_assert((int)LOG_CLASS_ERROR == (int)FCFT_LOG_CLASS_ERROR,
                    "fcft log level enum offset");
