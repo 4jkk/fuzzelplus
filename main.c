@@ -33,6 +33,7 @@
 #include "key-binding.h"
 #include "match.h"
 #include "path.h"
+#include "pinentry.h"
 #include "render.h"
 #include "shm.h"
 #include "version.h"
@@ -42,11 +43,12 @@
 #define max(x, y) ((x) > (y) ? (x) : (y))
 
 struct context {
-    const struct config *conf;
+    struct config *conf;
     const char *cache_path;
     struct wayland *wayl;
     struct render *render;
     struct matches *matches;
+    struct prompt *prompt;
     struct application_list *apps;
 
     icon_theme_list_t *themes;
@@ -56,7 +58,7 @@ struct context {
     const char *select_initial;
 
     int event_fd;
-    int dmenu_abort_fd;
+    int abort_fd;
 };
 
 struct cache_entry {
@@ -402,12 +404,14 @@ print_usage(const char *prog_name)
            "                                 entry's text (dmenu mode only)\n"
            "  -R,--no-run-if-empty           exit immediately without showing UI if stdin\n"
            "                                 is empty (dmenu mode only)\n"
+           "     --pinentry                  pinentry mode (see man page)\n"
            "     --log-level={info|warning|error|none}\n"
            "                                 log level (warning)\n"
            "     --log-colorize=[never|always|auto]\n"
            "                                 enable/disable colorization of log output on\n"
            "                                 stderr\n"
            "     --log-no-syslog             disable syslog logging\n"
+           "     --display=DISPLAY           pinentry compatibility, ignored\n"
            "  -v,--version                   show the version number and quit\n");
     printf("\n");
     printf("All colors are RGBA - i.e. 8-digit hex values, without prefix.\n");
@@ -515,44 +519,56 @@ populate_apps(void *_ctx)
     struct context *ctx = _ctx;
     const char *cache_path = ctx->cache_path;
     struct application_list *apps = ctx->apps;
-    const struct config *conf = ctx->conf;
+    struct config *conf = ctx->conf;
     const char *icon_theme = conf->icon_theme;
     const char *terminal = conf->terminal;
     bool actions_enabled = conf->actions_enabled;
     bool dmenu_enabled = conf->dmenu.enabled;
+    bool pinentry_enabled = conf->pinentry.enabled;
     bool icons_enabled = conf->icons_enabled;
     char dmenu_delim = conf->dmenu.delim;
     bool filter_desktop = conf->filter_desktop;
     bool list_exec_in_path = conf->list_executables_in_path;
-    char_list_t desktops = tll_init();
     char *saveptr = NULL;
 
-    if (filter_desktop) {
-        char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
-        if (xdg_current_desktop && strlen(xdg_current_desktop) != 0) {
-            xdg_current_desktop = strdup(xdg_current_desktop);
-            for (char *desktop = strtok_r(xdg_current_desktop, ":", &saveptr);
-                 desktop != NULL;
-                 desktop = strtok_r(NULL, ":", &saveptr))
-                {
-                    tll_push_back(desktops, strdup(desktop));
-                }
-            free(xdg_current_desktop);
-        }
-    }
+    if (pinentry_enabled) {
+        pinentry_read_commands(
+            ctx->conf, ctx->prompt, ctx->event_fd, ctx->abort_fd);
 
-    if (dmenu_enabled) {
+        int r = send_event(ctx->event_fd, EVENT_ABORT);
+        if (r != 0)
+            return r;
+
+        return 0;
+    } else if (dmenu_enabled) {
         if (!conf->prompt_only) {
-            dmenu_load_entries(apps, dmenu_delim, ctx->event_fd, ctx->dmenu_abort_fd);
+            dmenu_load_entries(apps, dmenu_delim, ctx->event_fd, ctx->abort_fd);
             read_cache(cache_path, apps, true);
         }
     } else {
+        char_list_t desktops = tll_init();
+
+        if (filter_desktop) {
+            char *xdg_current_desktop = getenv("XDG_CURRENT_DESKTOP");
+            if (xdg_current_desktop && strlen(xdg_current_desktop) != 0) {
+                xdg_current_desktop = strdup(xdg_current_desktop);
+                for (char *desktop = strtok_r(xdg_current_desktop, ":", &saveptr);
+                     desktop != NULL;
+                     desktop = strtok_r(NULL, ":", &saveptr))
+                {
+                    tll_push_back(desktops, strdup(desktop));
+                }
+                free(xdg_current_desktop);
+            }
+        }
+
         xdg_find_programs(terminal, actions_enabled, filter_desktop, &desktops, apps);
         if (list_exec_in_path)
             path_find_programs(apps);
         read_cache(cache_path, apps, false);
+
+        tll_free_and_free(desktops, free);
     }
-    tll_free_and_free(desktops, free);
 
     int r = send_event(ctx->event_fd, EVENT_APPS_ALL_LOADED);
     if (r != 0)
@@ -599,7 +615,7 @@ process_event(struct context *ctx, enum event_type event)
         matches_set_applications(matches, apps);
 
         if (event == EVENT_APPS_ALL_LOADED) {
-            if (ctx->conf->dmenu.exit_immediately_if_empty && apps->count == 0)
+            if (conf->dmenu.enabled && conf->dmenu.exit_immediately_if_empty && apps->count == 0)
                 return false;
             matches_all_applications_loaded(matches);
         }
@@ -627,6 +643,9 @@ process_event(struct context *ctx, enum event_type event)
         /* Just need to refresh the GUI */
         matches_icons_loaded(matches);
         break;
+
+    case EVENT_ABORT:
+        return false;
 
     default:
         LOG_ERR("unknown event: %llx", (long long)event);
@@ -728,6 +747,8 @@ main(int argc, char *const *argv)
     #define OPT_PLACEHOLDER_COLOR            292
     #define OPT_SEARCH_TEXT                  293
     #define OPT_COUNTER                      294
+    #define OPT_PINENTRY                     295
+    #define OPT_DISPLAY                      296
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -794,12 +815,17 @@ main(int argc, char *const *argv)
         {"no-run-if-empty",      no_argument,       0, 'R'},
         {"index",                no_argument,       0, OPT_DMENU_INDEX},
 
+        /* Pinentry mode */
+        {"pinentry",             no_argument,       0, OPT_PINENTRY},
+
         /* Misc */
         {"log-level",            required_argument, 0, OPT_LOG_LEVEL},
         {"log-colorize",         optional_argument, 0, OPT_LOG_COLORIZE},
         {"log-no-syslog",        no_argument,       0, OPT_LOG_NO_SYSLOG},
         {"version",              no_argument,       0, 'v'},
         {"help",                 no_argument,       0, 'h'},
+
+        {"display",              required_argument, 0, OPT_DISPLAY},
         {NULL,                   no_argument,       0, 0},
     };
 
@@ -860,6 +886,7 @@ main(int argc, char *const *argv)
         bool delayed_filter_limit_set:1;
         bool placeholder_color_set:1;
         bool counter_set:1;
+        bool pinentry_set:1;
     } cmdline_overrides = {{0}};
 
     setlocale(LC_CTYPE, "");
@@ -870,9 +897,14 @@ main(int argc, char *const *argv)
         char *copy = strdup(argv[0]);
         if (copy != NULL) {
             const char *name = basename(copy);
-            if (name != NULL && strcmp(name, "dmenu") == 0) {
-                cmdline_overrides.conf.dmenu.enabled = true;
-                cmdline_overrides.dmenu_enabled_set = true;
+            if (name != NULL) {
+                if (strcmp(name, "dmenu") == 0) {
+                    cmdline_overrides.conf.dmenu.enabled = true;
+                    cmdline_overrides.dmenu_enabled_set = true;
+                } else if (strcmp(name, "pinentry-fuzzel") == 0) {
+                    cmdline_overrides.conf.pinentry.enabled = true;
+                    cmdline_overrides.pinentry_set = true;
+                }
             }
 
             free(copy);
@@ -1509,6 +1541,11 @@ main(int argc, char *const *argv)
             cmdline_overrides.dmenu_mode_set = true;
             break;
 
+        case OPT_PINENTRY:
+            cmdline_overrides.conf.pinentry.enabled = true;
+            cmdline_overrides.pinentry_set = true;
+            break;
+
         case OPT_LOG_LEVEL: {
             int lvl = log_level_from_string(optarg);
             if (lvl < 0) {
@@ -1591,6 +1628,9 @@ main(int argc, char *const *argv)
             cmdline_overrides.delayed_filter_limit_set = true;
             break;
 
+        case OPT_DISPLAY:
+            break;
+
         case 'v':
             printf("fuzzel %s\n", version_and_features());
             return EXIT_SUCCESS;
@@ -1645,15 +1685,8 @@ main(int argc, char *const *argv)
         free(conf.search_text);
         conf.search_text = cmdline_overrides.conf.search_text;
     }
-    if (cmdline_overrides.conf.password_mode.enabled) {
+    if (cmdline_overrides.conf.password_mode.enabled)
         conf.password_mode.enabled = true;
-        conf.password_mode.character =
-            cmdline_overrides.conf.password_mode.character_set
-                ? cmdline_overrides.conf.password_mode.character
-                : conf.password_mode.character_set
-                    ? conf.password_mode.character
-                    : U'*';
-    }
     if (cmdline_overrides.conf.terminal != NULL) {
         free(conf.terminal);
         conf.terminal = strdup(cmdline_overrides.conf.terminal);
@@ -1768,8 +1801,15 @@ main(int argc, char *const *argv)
         free(conf.cache_path);
         conf.cache_path = strdup(cmdline_overrides.conf.cache_path);
     }
+    if (cmdline_overrides.pinentry_set)
+        conf.pinentry.enabled = cmdline_overrides.conf.pinentry.enabled;
 
-    if (conf.dmenu.enabled) {
+    if (conf.pinentry.enabled) {
+        conf.prompt_only = true;
+        conf.password_mode.enabled = true;
+        conf.lines = 0;
+        conf.match_counter = false;
+    } else if (conf.dmenu.enabled) {
         /* We don't have any meta data in dmenu mode */
         conf.match_fields = MATCH_NAME;
 
@@ -1779,6 +1819,15 @@ main(int argc, char *const *argv)
             conf.dmenu.exit_immediately_if_empty = false;
             close(STDIN_FILENO);  /* To catch reads */
         }
+    }
+
+    if (conf.password_mode.enabled) {
+        conf.password_mode.character =
+            cmdline_overrides.conf.password_mode.character_set
+                ? cmdline_overrides.conf.password_mode.character
+                : conf.password_mode.character_set
+                    ? conf.password_mode.character
+                    : U'*';
     }
 
     _Static_assert((int)LOG_CLASS_ERROR == (int)FCFT_LOG_CLASS_ERROR,
@@ -1810,7 +1859,7 @@ main(int argc, char *const *argv)
     thrd_t app_thread_id;
     bool join_app_thread = false;
     int event_pipe[2] = {-1, -1};
-    int dmenu_abort_fd = -1;
+    int abort_fd = -1;
 
     char *lock_file = NULL;
     int file_lock_fd = -1;
@@ -1854,10 +1903,10 @@ main(int argc, char *const *argv)
 
     matches_set_applications(matches, apps);
 
-    if (conf.dmenu.enabled) {
-        dmenu_abort_fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
-        if (dmenu_abort_fd < 0) {
-            LOG_ERRNO("failed to create event FD for dmenu mode");
+    if (conf.dmenu.enabled || conf.pinentry.enabled) {
+        abort_fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+        if (abort_fd < 0) {
+            LOG_ERRNO("failed to create event FD for dmenu/pinentry mode");
             goto out;
         }
     }
@@ -1867,12 +1916,13 @@ main(int argc, char *const *argv)
         .cache_path = conf.cache_path,
         .render = render,
         .matches = matches,
+        .prompt = prompt,
         .apps = apps,
         .themes = &themes,
         .icon_lock = &icon_lock,
         .select_initial = select,
         .event_fd = -1,
-        .dmenu_abort_fd = dmenu_abort_fd,
+        .abort_fd = abort_fd,
     };
 
     if ((kb_manager = kb_manager_new()) == NULL)
@@ -1904,7 +1954,7 @@ main(int argc, char *const *argv)
 
     join_app_thread = true;
 
-    if (!conf.dmenu.exit_immediately_if_empty)
+    if (!conf.dmenu.exit_immediately_if_empty && !conf.pinentry.enabled)
         wayl_refresh(wayl);
 
     while (true) {
@@ -1913,16 +1963,23 @@ main(int argc, char *const *argv)
             break;
     }
 
-    if (wayl_update_cache(wayl))
+    if (wayl_update_cache(wayl) && !conf.pinentry.enabled)
         write_cache(conf.cache_path, apps, conf.dmenu.enabled);
+
+    if (wayl_cancelled(wayl) && conf.pinentry.enabled)
+        pinentry_cancel();
 
     ret = wayl_exit_code(wayl);
 
 out:
     if (join_app_thread) {
-        if (dmenu_abort_fd >= 0) {
-            if (write(dmenu_abort_fd, &(uint64_t){1}, sizeof(uint64_t)) < 0)
-                LOG_ERRNO("failed to signal abort");
+        if (abort_fd >= 0) {
+            if (conf.pinentry.enabled) {
+                /* Wait for caller to either send "BYE", or close STDIN */
+            } else {
+                if (write(abort_fd, &(uint64_t){1}, sizeof(uint64_t)) < 0)
+                    LOG_ERRNO("failed to signal abort");
+            }
         }
 
         int res;
@@ -1944,8 +2001,8 @@ out:
     if (event_pipe[1] >= 0)
         close(event_pipe[1]);
 
-    if (dmenu_abort_fd >= 0)
-        close(dmenu_abort_fd);
+    if (abort_fd >= 0)
+        close(abort_fd);
 
     mtx_destroy(&icon_lock);
 
@@ -1959,7 +2016,6 @@ out:
     fdm_destroy(fdm);
     applications_destroy(apps);
     icon_themes_destroy(themes);
-    //free(prompt_allocated);
     config_free(&conf);
 
 #if defined(FUZZEL_ENABLE_CAIRO) && defined(_DEBUG)

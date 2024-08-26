@@ -1634,6 +1634,9 @@ config_load(struct config *conf, const char *conf_path,
             .exit_immediately_if_empty = false,
             .delim = '\n',
         },
+        .pinentry = {
+            .enabled = false,
+        },
         .anchor = ANCHOR_CENTER,
         .margin = {
             .x = 0,

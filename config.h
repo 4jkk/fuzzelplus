@@ -150,6 +150,10 @@ struct config {
         char delim;
     } dmenu;
 
+    struct {
+        bool enabled;
+    } pinentry;
+
     enum anchors anchor;
 
     struct {

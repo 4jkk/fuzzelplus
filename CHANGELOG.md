@@ -88,6 +88,9 @@
 * Support for pasting text into fuzzel. Both the regular clipboard,
   and the primary clipboard are supported. See the new
   `clipboard-paste` and `primary-paste` key bindings ([#200][200]).
+* Pinentry support. Fuzzel can now be used as a pinentry GUI, by
+  either running `fuzzel --pinentry`, or `pinentry-fuzzel` (a symlink
+  to `fuzzel`).
 
 [344]: https://codeberg.org/dnkl/fuzzel/issues/344
 [131]: https://codeberg.org/dnkl/fuzzel/issues/131

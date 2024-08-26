@@ -1,15 +1,6 @@
 #include "dmenu.h"
 
-#include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <stdio.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <unistd.h>
-
 #include <tllist.h>
 
 #define LOG_MODULE "dmenu"
@@ -17,219 +8,126 @@
 #include "log.h"
 #include "char32.h"
 #include "event.h"
+#include "getlines.h"
+
+typedef tll(struct application *) dmenu_entries_list_t;
+
+struct context {
+    struct application_list *applications;
+    dmenu_entries_list_t entries;
+    size_t app_idx;
+    int event_fd;
+};
+
+static bool
+process_line(const char *line, size_t len, void *data)
+{
+    struct context *ctx = data;
+
+    /*
+     * Support Rofi’s extended dmenu protocol. One can specify an icon
+     * by appending ‘\0icon\x1f<icon-name>’ to the entry:
+     *
+     *  “hello world\0icon\x1ffirefox”
+     */
+    char *icon_name = NULL;
+    const char *extra = memchr(line, '\0', len);
+
+    if (extra != NULL) {
+        const size_t extra_len = line + len - extra;
+
+        /*
+         * 'extra' is "\0icon\x1f" - 6 characters. Require *more* than
+         * 6, since icon *name* cannot be empty
+         */
+        if (extra_len > 6 &&  memcmp(extra, "\0icon\x1f", 6) == 0)
+            icon_name = strndup(extra + 6, line + len - (extra + 6));
+    }
+
+    LOG_DBG("%s (icon=%s)", buffer, icon_name);
+
+    char32_t *wline = ambstoc32(line);
+
+    if (wline == NULL) {
+        free(icon_name);
+        return true;
+    }
+
+    char32_t *lowercase = c32dup(wline);
+    for (size_t i = 0; i < c32len(lowercase); i++)
+        lowercase[i] = toc32lower(lowercase[i]);
+
+    struct application *app = malloc(sizeof(*app));
+    *app = (struct application){
+        .index = ctx->app_idx++,
+        .title = wline,
+        .title_lowercase = lowercase,
+        .title_len = c32len(lowercase),
+        .icon = {.name = icon_name},
+        .visible = true,
+    };
+
+    tll_push_back(ctx->entries, app);
+    return true;
+}
+
+static bool
+chunk_done(void *data)
+{
+    struct context *ctx = data;
+    struct application_list *applications = ctx->applications;
+
+    if (ctx->event_fd == 0)
+        return true;
+
+    mtx_lock(&applications->lock);
+
+    const size_t new_count = applications->count + tll_length(ctx->entries);
+    applications->v = reallocarray(
+        applications->v, new_count, sizeof(applications->v[0]));
+
+    size_t i = applications->count;
+    tll_foreach(ctx->entries, it) {
+        applications->v[i++] = it->item;
+        tll_remove(ctx->entries, it);
+    }
+
+    assert(i == new_count);
+    applications->count = new_count;
+    send_event(ctx->event_fd, EVENT_APPS_SOME_LOADED);
+    mtx_unlock(&applications->lock);
+    return true;
+}
 
 void
 dmenu_load_entries(struct application_list *applications, char delim,
                    int event_fd, int abort_fd)
 {
-    tll(struct application *) entries = tll_init();
+    struct context ctx = {
+        .applications = applications,
+        .entries = tll_init(),
+        .app_idx = 0,
+        .event_fd = event_fd,
+    };
 
-    size_t size = 0;
-    size_t alloc_size = 16384;
-    char *buffer = malloc(alloc_size);
+    if (getlines(delim, abort_fd, &process_line, &chunk_done, &ctx)) {
+        mtx_lock(&applications->lock);
 
-    if (buffer == NULL) {
-        LOG_ERRNO("failed to allocate input buffer");
-        return;
+        const size_t new_count = applications->count + tll_length(ctx.entries);
+        applications->v = reallocarray(
+            applications->v, new_count, sizeof(applications->v[0]));
+
+        size_t i = applications->count;
+        tll_foreach(ctx.entries, it) {
+            applications->v[i++] = it->item;
+            tll_remove(ctx.entries, it);
+        }
+
+        applications->count = new_count;
+        mtx_unlock(&applications->lock);
     }
 
-    int flags;
-    if ((flags = fcntl(STDIN_FILENO, F_GETFL)) < 0 ||
-        fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK) < 0)
-    {
-        LOG_ERRNO("failed to set O_NONBLOCK on stdin");
-        goto out;
-    }
-
-    size_t app_idx = 0;
-
-    errno = 0;
-    while (true) {
-        struct pollfd fds[] = {
-            {.fd = STDIN_FILENO, .events = POLLIN},
-
-            /* Must be last */
-            {.fd = abort_fd, .events = POLLIN},
-        };
-
-        size_t count = sizeof(fds) / sizeof(fds[0]);
-        if (abort_fd < 0)
-            count--;
-
-        int ret = poll(fds, count, -1);
-        if (ret < 0) {
-            LOG_ERRNO("failed to poll stdin");
-            break;
-        }
-
-        if (fds[1].revents & (POLLIN | POLLHUP)) {
-            LOG_WARN("aborted");
-            break;
-        }
-
-        /* Increase size of input buffer, if necessary */
-        if (size >= alloc_size - 2) {
-            LOG_DBG("increasing input buffer size %zu -> %zu",
-                    alloc_size, alloc_size * 2);
-
-            alloc_size *= 2;
-
-            char *new_buf = realloc(buffer, alloc_size);
-            if (new_buf == NULL) {
-                LOG_ERRNO("failed to reallocate input buffer");
-                break;
-            }
-
-            buffer = new_buf;
-        }
-
-        ssize_t bytes_read = read(
-            STDIN_FILENO, &buffer[size], alloc_size - size - 1);
-
-        if (bytes_read < 0) {
-            if (errno == EINTR)
-                continue;
-            LOG_ERRNO("failed to read from stdin");
-            break;
-        } else if (bytes_read == 0 && size == 0) {
-            /* No more data on stdin, and all buffered data consumed */
-            break;
-        }
-
-        size += bytes_read;
-
-        /*
-         * Consume as much as possible from the input buffer
-         *
-         * Input buffer may contain many lines, resulting in multiple
-         * applications being added.
-         *
-         * Input buffer may not even contain a single line, in which
-         * case we can't consume anything at all.
-         *
-         * Input buffer may contain one or more full lines, followed
-         * by a final partial line. If stdin has been closed
-         * (i.e. there's no more input to read), then treat the last,
-         * partial line as a complete line (i.e. pretend it's followed
-         * by a delimiter). But, if stdin is still open, don't consume
-         * the last, partial line. Instead, wait for more input.
-         */
-        while (size > 0) {
-            char *delim_at = memchr(buffer, delim, size);
-            if (delim_at == NULL) {
-                if (bytes_read > 0) {
-                    /* No delimiter yet, wait for more data */
-                    LOG_DBG("no delimiter found, waiting for more data...");
-                    break;
-                } else {
-                    /* No delimiter, but stdin has been closed. Treat
-                       the last chunk of data as a complete line. */
-                    LOG_DBG("last line: pointing delim_at to the end of the buffer");
-                    delim_at = &buffer[size];
-                    size++;
-                }
-            }
-
-            const size_t entry_len = delim_at - buffer;
-            *delim_at = '\0';
-
-            /*
-             * Support Rofi’s extended dmenu protocol. One can specify
-             * an icon by appending ‘\0icon\x1f<icon-name>’ to the
-             * entry:
-             *
-             *  “hello world\0icon\x1ffirefox”
-             */
-            char *icon_name = NULL;
-            const char *extra = memchr(buffer, '\0', entry_len);
-
-            if (extra != NULL) {
-                const size_t extra_len = delim_at - extra;
-
-                /*
-                 * 'extra' is "\0icon\x1f" - 6 characters. Require
-                 * *more* than 6, since icon *name* cannot be empty
-                 */
-                if (extra_len > 6 &&  memcmp(extra, "\0icon\x1f", 6) == 0)
-                    icon_name = strndup(extra + 6, delim_at - (extra + 6));
-            }
-
-            LOG_DBG("%s (icon=%s)", buffer, icon_name);
-
-            char32_t *wline = ambstoc32(buffer);
-
-            /* Consume entry from input buffer */
-            const size_t consume = delim_at + 1 - buffer;
-            assert(consume <= size);
-
-            memmove(buffer, delim_at + 1, size - consume);
-            size -= consume;
-
-            if (wline == NULL) {
-                free(icon_name);
-                continue;
-            }
-
-            char32_t *lowercase = c32dup(wline);
-            for (size_t i = 0; i < c32len(lowercase); i++)
-                lowercase[i] = toc32lower(lowercase[i]);
-
-            struct application *app = malloc(sizeof(*app));
-            *app = (struct application){
-                .index = app_idx++,
-                .title = wline,
-                .title_lowercase = lowercase,
-                .title_len = c32len(lowercase),
-                .icon = {.name = icon_name},
-                .visible = true,
-            };
-
-            tll_push_back(entries, app);
-        }
-
-        if (event_fd >= 0) {
-            mtx_lock(&applications->lock);
-
-            const size_t new_count = applications->count + tll_length(entries);
-            applications->v = reallocarray(
-                applications->v, new_count, sizeof(applications->v[0]));
-
-            size_t i = applications->count;
-            tll_foreach(entries, it) {
-                applications->v[i++] = it->item;
-                tll_remove(entries, it);
-            }
-
-            assert(i == new_count);
-            applications->count = new_count;
-            send_event(event_fd, EVENT_APPS_SOME_LOADED);
-            mtx_unlock(&applications->lock);
-        }
-    }
-
-    free(buffer);
-
-out:
-
-    if (tll_length(entries) == 0)
-        return;
-
-    mtx_lock(&applications->lock);
-
-    const size_t new_count = applications->count + tll_length(entries);
-    applications->v = reallocarray(
-        applications->v, new_count, sizeof(applications->v[0]));
-
-    size_t i = applications->count;
-    tll_foreach(entries, it) {
-        applications->v[i++] = it->item;
-        tll_remove(entries, it);
-    }
-
-    applications->count = new_count;
-    mtx_unlock(&applications->lock);
-
-    tll_free(entries);
+    tll_free(ctx.entries);
 }
 
 bool

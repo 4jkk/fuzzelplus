@@ -79,6 +79,20 @@ prompt_placeholder(const struct prompt *prompt)
     return prompt->placeholder;
 }
 
+void
+prompt_set_prompt(struct prompt *prompt, const char32_t *text)
+{
+    free(prompt->prompt);
+    prompt->prompt = text != NULL ? c32dup(text) : NULL;
+}
+
+void
+prompt_set_placeholder(struct prompt *prompt, const char32_t *text)
+{
+    free(prompt->placeholder);
+    prompt->placeholder = text != NULL ? c32dup(text) : NULL;
+}
+
 const char32_t *
 prompt_text(const struct prompt *prompt)
 {

@@ -160,6 +160,7 @@ executable(
   'dmenu.c', 'dmenu.h',
   'event.c', 'event.h',
   'fdm.c', 'fdm.h',
+  'getlines.c', 'getlines.h',
   'icon.c', 'icon.h',
   'key-binding.c', 'key-binding.h',
   'log.c', 'log.h',
@@ -167,12 +168,14 @@ executable(
   'main.c',
   'match.c', 'match.h',
   'path.c', 'path.h',
+  'pinentry.c', 'pinentry.h',
   'png.c', 'png-fuzzel.h',
   'prompt.c', 'prompt.h',
   'render.c', 'render.h',
   'shm.c', 'shm.h',
   'stride.h',
   'uri.c', 'uri.h',
+  'util.h',
   'wayland.c', 'wayland.h',
   'xdg.c', 'xdg.h',
   wl_proto_src + wl_proto_headers, version,
@@ -192,6 +195,10 @@ executable(
                  fcft],
   install: true)
 
+install_symlink(
+  'pinentry-fuzzel',
+  install_dir: get_option('bindir'),
+  pointing_to: 'fuzzel')
 install_data(
   'fuzzel.ini',
   install_dir: join_paths(get_option('sysconfdir'), 'xdg', 'fuzzel'))

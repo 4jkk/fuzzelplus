@@ -8,11 +8,14 @@ fuzzel - Wayland app launcher and picker
 
 # DESCRIPTION
 
-As a launcher, *fuzzel* lists all available XDG applications in a searchable
-window.
+As a launcher, *fuzzel* lists all available XDG applications in a
+searchable window.
 
-With the *--dmenu* flag, fuzzel works like a general-purpose picker like dmenu, rofi or fzf.
-Options to choose from are provided on the STDIN and the selected option is printed to STDOUT.
+With the *--dmenu* flag, fuzzel works like a general-purpose picker
+like dmenu, rofi or fzf.  Options to choose from are provided on the
+STDIN and the selected option is printed to STDOUT.
+
+With the *--pinentry* flag, fuzzel acts as a pinentry GUI.
 
 The search box supports Emacs-like key bindings.
 
@@ -366,6 +369,57 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 	Print selected entry's index instead of its text.
 	Index values start with zero for the first entry.
 	**dmenu** mode only.
+
+*--pinentry*
+	Pinentry mode. This option turns fuzzel into a lightweight
+	pinentry client.
+	
+	Alternatively, you can run the *pinentry-fuzzel* symlink.
+	
+	In this mode, it reads Assuan protocol commands
+	from STDIN, and displays a prompt-only window where you can enter
+	a password.
+	
+	This option implies:
+	
+	- *--prompt-only*
+	- *--password*
+	
+	The Assuan pinentry protocol defines a lot of options, most of
+	which are simply ignored by fuzzel. Below is a summary of the
+	commands and options understood by fuzzel:
+	
+	- *OPTION default-prompt=*_<prompt>_
+	- *SETPROMPT* _<prompt>_
+	- *GETINFO FLAVOR*
+	- *GETINFO VERSION*
+	- *GETINFO PID*
+	- *GETPIN*
+	- *BYE*
+
+	Some of the more noteworthy options and commands fuzzel ignores
+	are:
+
+	- *SETTITLE*
+	- *SETDESC*
+    - *SETTIMEOUT*
+    - *SETKEYINFO*
+    - *CONFIRM*
+    - All i18n related options and commands
+    - All button related options and commands
+	
+	Setting the (pinentry) prompt currently sets *--placeholder* if
+	the provided prompt string ends with *:*, otherwise it sets
+	*--prompt*.
+	
+	Limitations (besides unimplemented options and commands):
+	
+	- *GETPIN* only works once. I.e. you cannot retrieve multiple
+	  passwords.
+	- Since fuzzel is a layer-shell application, most compositors will
+	  not let you change keyboard focus while fuzzel is running. This
+	  means you cannot, for example, switch to a password manager to
+	  copy a password to the clipboard and then switch back to fuzzel.
 
 *-R*,*--no-run-if-empty*
 	Exit immediately, without showing the UI, if stdin is

@@ -18,6 +18,9 @@ const char32_t *prompt_placeholder(const struct prompt *prompt);
 const char32_t *prompt_text(const struct prompt *prompt);
 size_t prompt_cursor(const struct prompt *prompt);
 
+void prompt_set_prompt(struct prompt *prompt, const char32_t *text);
+void prompt_set_placeholder(struct prompt *prompt, const char32_t *text);
+
 bool prompt_cursor_home(struct prompt *prompt);
 bool prompt_cursor_end(struct prompt *prompt);
 bool prompt_cursor_next_char(struct prompt *prompt);

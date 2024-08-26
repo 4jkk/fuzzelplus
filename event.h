@@ -4,6 +4,7 @@ enum event_type {
     EVENT_APPS_SOME_LOADED,
     EVENT_APPS_ALL_LOADED,
     EVENT_ICONS_LOADED,
+    EVENT_ABORT,
 
     EVENT_INVALID,
 };

@@ -37,8 +37,8 @@
 #include "log.h"
 #include "clipboard.h"
 #include "dmenu.h"
-#include "icon.h"
 #include "key-binding.h"
+#include "pinentry.h"
 #include "prompt.h"
 #include "render.h"
 #include "shm.h"
@@ -138,7 +138,7 @@ struct wayland {
     enum fcft_subpixel subpixel;
     bool font_is_sized_by_dpi;
 
-    enum { KEEP_RUNNING, EXIT_UPDATE_CACHE, EXIT} status;
+    enum { KEEP_RUNNING, EXIT_UPDATE_CACHE, EXIT, EXIT_CANCELLED} status;
     int exit_code;
     bool force_cache_update;
 
@@ -479,7 +479,7 @@ keyboard_leave(void *data, struct wl_keyboard *wl_keyboard, uint32_t serial,
     seat->kbd.serial = 0;
 
     if (seat->wayl->conf->exit_on_kb_focus_loss)
-        seat->wayl->status = EXIT;
+        seat->wayl->status = EXIT_CANCELLED;
 }
 
 static void
@@ -531,7 +531,10 @@ execute_selected(struct seat *seat, bool as_is, int custom_success_exit_code)
     struct application *app = match != NULL ? match->application : NULL;
     ssize_t index = app != NULL ? app->index : -1;
 
-    if (wayl->conf->dmenu.enabled) {
+    if (wayl->conf->pinentry.enabled) {
+        pinentry_execute(wayl->prompt);
+        wayl->exit_code = 0;
+    } else if (wayl->conf->dmenu.enabled) {
         dmenu_execute(app, index, wayl->prompt, wayl->conf->dmenu.mode);
         wayl->exit_code = custom_success_exit_code >= 0
             ? custom_success_exit_code
@@ -575,7 +578,7 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
         return true;
 
     case BIND_ACTION_CANCEL:
-        wayl->status = EXIT;
+        wayl->status = EXIT_CANCELLED;
         if (wayl->conf->dmenu.enabled)
             wayl->exit_code = 2;
         return true;
@@ -1132,7 +1135,7 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
 
         else if (button == BTN_RIGHT) {
             // Same as pressing ESC
-            wayl->status = EXIT;
+            wayl->status = EXIT_CANCELLED;
             if (wayl->conf->dmenu.enabled)
                 wayl->exit_code = 2;
         }
@@ -1987,7 +1990,7 @@ static void
 layer_surface_closed(void *data, struct zwlr_layer_surface_v1 *surface)
 {
     struct wayland *wayl = data;;
-    wayl->status = EXIT;
+    wayl->status = EXIT_CANCELLED;
 }
 
 static const struct zwlr_layer_surface_v1_listener layer_surface_listener = {
@@ -2136,7 +2139,6 @@ static bool
 fdm_handler(struct fdm *fdm, int fd, int events, void *data)
 {
     struct wayland *wayl = data;
-    int event_count = 0;
 
     if (events & EPOLLIN) {
         if (wl_display_read_events(wayl->display) < 0) {
@@ -2156,8 +2158,16 @@ fdm_handler(struct fdm *fdm, int fd, int events, void *data)
         return false;
     }
 
+
+    const bool done = wayl->status != KEEP_RUNNING;
+    if (done) {
+        /* Unmap */
+        wl_surface_attach(wayl->surface, NULL, 0, 0);
+        wl_surface_commit(wayl->surface);
+    }
+
     wl_display_flush(wayl->display);
-    return event_count != -1 && wayl->status == KEEP_RUNNING;
+    return !done;
 }
 
 static void
@@ -2339,7 +2349,9 @@ wayl_init(const struct config *conf, struct fdm *fdm,
         .prompt = prompt,
         .matches = matches,
         .status = KEEP_RUNNING,
-        .exit_code = !conf->dmenu.enabled ? EXIT_SUCCESS : EXIT_FAILURE,
+        .exit_code = !conf->dmenu.enabled && !conf->pinentry.enabled
+            ? EXIT_SUCCESS
+            : EXIT_FAILURE,
         .font_reloaded = {
             .cb = font_reloaded_cb,
             .data = data,
@@ -2548,6 +2560,12 @@ int
 wayl_exit_code(const struct wayland *wayl)
 {
     return wayl->exit_code;
+}
+
+bool
+wayl_cancelled(const struct wayland *wayl)
+{
+    return wayl->status == EXIT_CANCELLED;
 }
 
 bool
