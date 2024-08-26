@@ -91,6 +91,8 @@ process_line(const char *line, size_t len, void *data)
     static const char *const REPLY_UNKNOWN_COMMAND = "ERR 536871187 Unknown IPC command";
     //static const char *const REPLY_UNKNOWN_OPTION = "ERR 83886254 Unknown option <Pinentry>";
 
+    LOG_DBG("%s", line);
+
     if (strncasecmp(line, "option ", 7) == 0) {
         const char *option = line + 7;
 
