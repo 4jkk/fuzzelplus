@@ -48,8 +48,10 @@
   causing visual glitches in the prompt.
 * Wayland protocol error: _"layer surface has never been configured"_
   ([#426][426]).
+* Later key bindings overwrite earlier ones with a log warning on collision ([#225][225])
 
 [426]: https://codeberg.org/dnkl/fuzzel/issues/426
+[225]: https://codeberg.org/dnkl/fuzzel/issues/225
 
 
 ### Security

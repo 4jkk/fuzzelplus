@@ -431,9 +431,10 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
                                const char *const action_map[],
                                struct config_key_binding_list *bindings)
 {
+    // TODO: might be simpler to leave previous loop and replace keyaction in bindings[i] to bindings[i]
     bool ret = true;
 
-    for (size_t i = 1; i < bindings->count; i++) {
+    for (size_t i = 0; i < bindings->count; i++) {
         enum {
             COLLISION_NONE,
             COLLISION_BINDING,
@@ -446,12 +447,14 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
 
         const struct config_key_modifiers *mods1 = &binding1->modifiers;
 
+        const struct config_key_binding *binding2;
+
         /* Does our binding collide with another binding? */
-        for (ssize_t j = i - 1;
-             collision_type == COLLISION_NONE && j >= 0;
-             j--)
+        for (ssize_t j = i + 1;
+             collision_type == COLLISION_NONE && j < bindings->count;
+             j++)
         {
-            const struct config_key_binding *binding2 = &bindings->arr[j];
+            binding2 = &bindings->arr[j];
             assert(binding2->action != BIND_ACTION_NONE);
 
             if (binding2->action == binding1->action)
@@ -481,12 +484,12 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
                 break;
 
             case COLLISION_BINDING: {
-                LOG_ERR(
-                    "%s:%d: [%s].%s: %s%s already mapped to '%s'",
-                    binding1->path, binding1->lineno, section_name,
-                    action_map[binding1->action],
+                LOG_WARN(
+                    "%s:%d: [%s].%s: %s%s previously mapped to '%s', overwriting",
+                    binding2->path, binding2->lineno, section_name,
+                    action_map[collision_binding->action],
                     modifier_names, sym_name,
-                    action_map[collision_binding->action]);
+                    action_map[binding1->action]);
                 ret = false;
                 break;
             }
@@ -495,7 +498,7 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
             free(modifier_names);
             //free_key_binding(binding1);
 
-            /* Remove the most recent binding */
+            /* Remove the least recent binding */
             size_t move_count = bindings->count - (i + 1);
             memmove(&bindings->arr[i], &bindings->arr[i + 1],
                     move_count * sizeof(bindings->arr[0]));
