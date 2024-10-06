@@ -120,6 +120,11 @@
   searched) ([#622][622])
 * Segfault when "execute" action is pressed before there's any item in the
   list. ([#638][638])
+* Custom line heights smaller than the font's actual line height
+  causing visual glitches in the prompt.
+* Wayland protocol error: _"layer surface has never been configured"_
+  ([#426][426]).
+* Later key bindings overwrite earlier ones with a log warning on collision ([#225][225])
 
 [507]: https://codeberg.org/dnkl/fuzzel/issues/507
 [551]: https://codeberg.org/dnkl/fuzzel/issues/551
@@ -128,6 +133,8 @@
 [595]: https://codeberg.org/dnkl/fuzzel/issues/595
 [622]: https://codeberg.org/dnkl/fuzzel/issues/622
 [638]: https://codeberg.org/dnkl/fuzzel/issues/638
+[426]: https://codeberg.org/dnkl/fuzzel/issues/426
+[225]: https://codeberg.org/dnkl/fuzzel/issues/225
 
 ### Security
 ### Contributors
