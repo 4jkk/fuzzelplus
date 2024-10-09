@@ -294,7 +294,7 @@ out:
 static char *
 modifiers_to_str(const struct config_key_modifiers *mods);
 
-// TODO: pass binding_action_map
+// TODO: pass binding_action_map instead of using global var?
 static void
 remove_from_key_bindings_list(struct config_key_binding_list *bindings,
                               int action, bool explicit_unmap)
@@ -317,15 +317,12 @@ remove_from_key_bindings_list(struct config_key_binding_list *bindings,
             char sym_name[64];
             xkb_keysym_get_name(binding->k.sym, sym_name, sizeof(sym_name));
 
-            // TODO: improve log msg ?
             /* treat default keybindings differently */
             if (binding->path == NULL) {
-                // "(default) [key-bindings].%s: was previously triggered by %s%s, unmapping"
                 LOG_WARN("unmapping default keybinding: %s: was previously triggered by %s%s",
                          binding_action_map[action],
                          modifier_names, sym_name);
             } else {
-                // "%s:%d: [key-bindings].%s: was previously triggered by %s%s, unmapping"
                 LOG_WARN("unmapping keybinding defined at %s:%d: %s: was previously triggered by %s%s",
                          binding->path, binding->lineno,
                          binding_action_map[action],
@@ -458,7 +455,6 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
                                const char *const action_map[],
                                struct config_key_binding_list *bindings)
 {
-    // TODO: might be simpler to leave previous loop and replace keyaction in bindings[i] to bindings[i]
     bool ret = true;
 
     for (size_t i = 0; i < bindings->count; i++) {
