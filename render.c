@@ -844,6 +844,16 @@ render_png_libpng(struct icon *icon, int x, int y, int size,
     int width = pixman_image_get_width(png);
 
     if (height > size) {
+        if (height >= 1000) {
+            if (!icon->png_size_warned) {
+                LOG_WARN(
+                    "%s: PNG icon is too large (%dx%d); not rendering it. "
+                    "Consider reporting this to the application/icon developers.",
+                    icon->path, width, height);
+                icon->png_size_warned = true;
+            }
+            return;
+        }
         double scale = (double)size / height;
 
         pixman_f_transform_t _scale_transform;
