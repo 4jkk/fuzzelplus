@@ -595,7 +595,7 @@ process_event(struct context *ctx, enum event_type event)
     struct application_list *apps = ctx->apps;
     struct matches *matches = ctx->matches;
     const char *select = ctx->select_initial;
-    const int select_idx = ctx->select_initial_idx;
+    const size_t select_idx = ctx->select_initial_idx;
 
     switch (event) {
     case EVENT_APPS_SOME_LOADED:
@@ -623,8 +623,12 @@ process_event(struct context *ctx, enum event_type event)
              *   c) a partial load will cause more matches to be displayed
              */
             matches_update_no_delay(matches);
-            if (select_idx != 0)
-                matches_idx_select(matches, select_idx);
+            if (select_idx != 0) {
+                if (!matches_selected_set(matches, select_idx)) {
+                    LOG_ERR("couldn't select entry at index %zu", select_idx);
+                    return false;
+                }
+            }
             else
                 matches_selected_select(matches, select);
         }
