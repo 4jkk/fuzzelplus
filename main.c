@@ -348,7 +348,7 @@ print_usage(const char *prog_name)
            "     --y-margin=MARGIN           vertical margin, in pixels (0)\n"
            "     --select=STRING             select first entry that matches the given\n"
            "                                 string\n"
-           "     --select-index=INDEX        select the entry with index\n"
+           "     --select-index=INDEX        select the entry with index, not compatible with --select\n"
            "  -l,--lines                     number of matches to show\n"
            "  -w,--width                     window width, in characters (margins and\n"
            "                                 borders not included)\n"
@@ -1642,6 +1642,11 @@ main(int argc, char *const *argv)
     LOG_INFO("%s", version_and_features());
 
     int ret = EXIT_FAILURE;
+
+    if (select != NULL && select_idx) {
+            LOG_ERRNO("--select and --select-index are not compatible");
+            return ret;
+    }
 
     struct config conf = {0};
     bool conf_successful = config_load(&conf, config_path, NULL, check_config);
