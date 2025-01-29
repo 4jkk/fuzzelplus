@@ -463,6 +463,9 @@ done by setting _action=none_; e.g. *delete-line-forward=none*.
 *delete-line-forward*
 	Deletes everything after the cursor. Default: _Control+k_.
 
+*delete-line*
+	Deletes the entire input. Default: _Control+Shift+BackSpace_.
+
 *insert-selected*
 	Copies the selected entry to the prompt, replacing the current
 	prompt. In application mode, the *Exec* line is inserted, and in

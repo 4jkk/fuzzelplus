@@ -32,6 +32,10 @@
 ### Added
 
 * Nanosvg updated to ea6a6aca009422bba0dbad4c80df6e6ba0c82183
+* New key binding: `delete-line` corresponding to C-S-Backspace in Emacs,
+  Which deletes the entire input ([#472][472]).
+
+[472]: https://codeberg.org/dnkl/fuzzel/pulls/472
 
 
 ### Changed
