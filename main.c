@@ -1648,7 +1648,7 @@ main(int argc, char *const *argv)
     int ret = EXIT_FAILURE;
 
     if (select != NULL && select_idx) {
-            LOG_ERRNO("--select and --select-index are not compatible");
+            LOG_ERRNO("--select and --select-index cannot be used at the same time");
             return ret;
     }
 
