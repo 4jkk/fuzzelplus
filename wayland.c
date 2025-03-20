@@ -568,6 +568,28 @@ execute_selected(struct seat *seat, bool as_is, int custom_success_exit_code)
     }
 }
 
+static void
+matches_update_select(struct seat *seat)
+{
+    struct wayland *wayl = seat->wayl;
+    matches_update(wayl->matches);
+    if (wayl->conf->dmenu.enabled && wayl->conf->dmenu.preview_selection) {
+        execute_selected(seat, false, -1);
+        wayl->status = KEEP_RUNNING;  // Reset status to keep running
+    }
+}
+
+static void
+matches_update_incremental_select(struct seat *seat)
+{
+    struct wayland *wayl = seat->wayl;
+    matches_update_incremental(wayl->matches);
+    if (wayl->conf->dmenu.enabled && wayl->conf->dmenu.preview_selection) {
+        execute_selected(seat, false, -1);
+        wayl->status = KEEP_RUNNING;  // Reset status to keep running
+    }
+}
+
 static bool
 execute_binding(struct seat *seat, const struct key_binding *binding, bool *refresh)
 {
@@ -613,37 +635,37 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
     case BIND_ACTION_DELETE_PREV:
         *refresh = prompt_erase_prev_char(wayl->prompt);
         if (*refresh)
-            matches_update(wayl->matches);
+            matches_update_select(seat);
         return true;
 
     case BIND_ACTION_DELETE_PREV_WORD:
         *refresh = prompt_erase_prev_word(wayl->prompt);
         if (*refresh)
-            matches_update(wayl->matches);
+            matches_update_select(seat);
         return true;
 
     case BIND_ACTION_DELETE_LINE_BACKWARD:
         *refresh = prompt_erase_before_cursor(wayl->prompt);
         if (*refresh)
-            matches_update(wayl->matches);
+            matches_update_select(seat);
         return true;
 
     case BIND_ACTION_DELETE_NEXT:
         *refresh = prompt_erase_next_char(wayl->prompt);
         if (*refresh)
-            matches_update(wayl->matches);
+            matches_update_select(seat);
         return true;
 
     case BIND_ACTION_DELETE_NEXT_WORD:
         *refresh = prompt_erase_next_word(wayl->prompt);
         if (*refresh)
-            matches_update(wayl->matches);
+            matches_update_select(seat);
         return true;
 
     case BIND_ACTION_DELETE_LINE_FORWARD:
         *refresh = prompt_erase_after_cursor(wayl->prompt);
         if (*refresh)
-            matches_update(wayl->matches);
+            matches_update_select(seat);
         return true;
 
     case BIND_ACTION_INSERT_SELECTED: {
@@ -667,7 +689,7 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
         }
 
         if (*refresh)
-            matches_update(wayl->matches);
+            matches_update_select(seat);
         return true;
     }
 
@@ -675,7 +697,7 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
         const struct match *match = matches_get_match(wayl->matches);
         if (match != NULL) {
             match->application->count = 0;
-            matches_update(wayl->matches);
+            matches_update_select(seat);
             wayl->force_cache_update = true;
             *refresh = true;
         } else
@@ -708,10 +730,18 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
 
     case BIND_ACTION_MATCHES_PREV:
         *refresh = matches_selected_prev(wayl->matches, false);
+        if (*refresh && wayl->conf->dmenu.enabled && wayl->conf->dmenu.preview_selection) {
+            execute_selected(seat, false, -1);
+            wayl->status = KEEP_RUNNING;
+        }
         return true;
 
     case BIND_ACTION_MATCHES_PREV_WITH_WRAP:
         *refresh = matches_selected_prev(wayl->matches, true);
+        if (*refresh && wayl->conf->dmenu.enabled && wayl->conf->dmenu.preview_selection) {
+            execute_selected(seat, false, -1);
+            wayl->status = KEEP_RUNNING;
+        }
         return true;
 
     case BIND_ACTION_MATCHES_PREV_PAGE:
@@ -720,10 +750,18 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
 
     case BIND_ACTION_MATCHES_NEXT:
         *refresh = matches_selected_next(wayl->matches, false);
+        if (*refresh && wayl->conf->dmenu.enabled && wayl->conf->dmenu.preview_selection) {
+            execute_selected(seat, false, -1);
+            wayl->status = KEEP_RUNNING;
+        }
         return true;
 
     case BIND_ACTION_MATCHES_NEXT_WITH_WRAP:
         *refresh = matches_selected_next(wayl->matches, true);
+        if (*refresh && wayl->conf->dmenu.enabled && wayl->conf->dmenu.preview_selection) {
+            execute_selected(seat, false, -1);
+            wayl->status = KEEP_RUNNING;
+        }
         return true;
 
     case BIND_ACTION_MATCHES_NEXT_PAGE:
@@ -918,7 +956,7 @@ keyboard_key(void *data, struct wl_keyboard *wl_keyboard, uint32_t serial,
 
     prompt_insert_chars(wayl->prompt, buf, count);
 
-    matches_update_incremental(wayl->matches);
+    matches_update_incremental_select(seat);
     wayl_refresh(wayl);
 
 maybe_repeat:
@@ -996,6 +1034,11 @@ select_hovered_match(struct seat *seat, bool refresh_always)
 
     if (refresh_always || refresh) {
         wayl_refresh(wayl);
+    }
+
+    if (refresh && wayl->conf->dmenu.enabled && wayl->conf->dmenu.preview_selection) {
+        execute_selected(seat, false, -1);
+        wayl->status = KEEP_RUNNING;  // Reset status to keep running
     }
 }
 
