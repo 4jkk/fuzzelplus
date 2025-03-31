@@ -731,6 +731,17 @@ xdg_data_dirs(void)
 {
     xdg_data_dirs_t ret = tll_init();
 
+    const char *home_icons;
+    if ((home_icons = getenv("HOME")) != NULL && home_icons[0] != '\0') {
+        char *path = xstrjoin(home_icons, "/.icons");
+        int fd = open(path, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+        if (fd >= 0) {
+            struct xdg_data_dir d = {.fd = fd, .path = path};
+            tll_push_back(ret, d);
+        } else
+            free(path);
+    }
+
     const char *xdg_data_home = getenv("XDG_DATA_HOME");
     const char *home;
     if (xdg_data_home != NULL && xdg_data_home[0] != '\0') {
