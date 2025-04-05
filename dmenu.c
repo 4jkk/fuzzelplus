@@ -129,6 +129,12 @@ dmenu_load_entries(struct application_list *applications, char delim,
              * entry:
              *
              *  “hello world\0icon\x1ffirefox”
+             *
+             * We also support fallback icons using comma-separated values.
+             * When the primary icon is not found, subsequent icons in the
+             * list will be tried until one is successfully loaded:
+             *
+             *  “hello world\0icon\x1ffirefox,web-browser,application-x-executable”
              */
             char *icon_name = NULL;
             const char *extra = memchr(buffer, '\0', entry_len);
