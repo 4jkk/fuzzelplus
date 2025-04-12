@@ -515,74 +515,31 @@ lookup_icons(const icon_theme_list_t *themes, int icon_size,
         if (app->icon.name == NULL)
             continue;
 
-        if (strchr(app->icon.name, ',') != NULL) {
-            char *icon_name_list = xstrdup(app->icon.name);
-            char *saveptr = NULL;
-            
-            for (char *icon_name = strtok_r(icon_name_list, ",", &saveptr);
-                icon_name != NULL;
-                icon_name = strtok_r(NULL, ",", &saveptr)) {
-                
-                if (icon_name[0] == '/') {
-                    const size_t name_len = strlen(icon_name);
-                    if (icon_name[name_len - 3] == 's' &&
-                        icon_name[name_len - 2] == 'v' &&
-                        icon_name[name_len - 1] == 'g')
-                    {
-                        if (svg(&app->icon, icon_name)) {
-                            LOG_DBG("%s: absolute path SVG", icon_name);
-                            break;
-                        }
-                    } else if (icon_name[name_len - 3] == 'p' &&
-                              icon_name[name_len - 2] == 'n' &&
-                              icon_name[name_len - 1] == 'g')
-                    {
-                        if (png(&app->icon, icon_name)) {
-                            LOG_DBG("%s: absolute path PNG", icon_name);
-                            break;
-                        }
-                    }
-                } else {
-                    char *file_name = xstrjoin(icon_name, ".xxx");
-                    struct icon_data data = {
-                        .name = icon_name,
-                        .app = app,
-                        .file_name = file_name,
-                        .file_name_len = strlen(file_name),
-                        .min_diff = {.diff = INT_MAX},
-                    };
-                    tll_push_back(icons, data);
-                }
+        if (app->icon.name[0] == '/') {
+            const size_t name_len = strlen(app->icon.name);
+            if (app->icon.name[name_len - 3] == 's' &&
+                app->icon.name[name_len - 2] == 'v' &&
+                app->icon.name[name_len - 1] == 'g')
+            {
+                if (svg(&app->icon, app->icon.name))
+                    LOG_DBG("%s: absolute path SVG", app->icon.name);
+            } else if (app->icon.name[name_len - 3] == 'p' &&
+                       app->icon.name[name_len - 2] == 'n' &&
+                       app->icon.name[name_len - 1] == 'g')
+            {
+                if (png(&app->icon, app->icon.name))
+                    LOG_DBG("%s: abslute path PNG", app->icon.name);
             }
-            
-            free(icon_name_list);
         } else {
-            if (app->icon.name[0] == '/') {
-                const size_t name_len = strlen(app->icon.name);
-                if (app->icon.name[name_len - 3] == 's' &&
-                    app->icon.name[name_len - 2] == 'v' &&
-                    app->icon.name[name_len - 1] == 'g')
-                {
-                    if (svg(&app->icon, app->icon.name))
-                        LOG_DBG("%s: absolute path SVG", app->icon.name);
-                } else if (app->icon.name[name_len - 3] == 'p' &&
-                          app->icon.name[name_len - 2] == 'n' &&
-                          app->icon.name[name_len - 1] == 'g')
-                {
-                    if (png(&app->icon, app->icon.name))
-                        LOG_DBG("%s: abslute path PNG", app->icon.name);
-                }
-            } else {
-                char *file_name = xstrjoin(app->icon.name, ".xxx");
-                struct icon_data data = {
-                    .name = app->icon.name,
-                    .app = app,
-                    .file_name = file_name,
-                    .file_name_len = strlen(file_name),
-                    .min_diff = {.diff = INT_MAX},
-                };
-                tll_push_back(icons, data);
-            }
+            char *file_name = xstrjoin(app->icon.name, ".xxx");
+            struct icon_data data = {
+                .name = app->icon.name,
+                .app = app,
+                .file_name = file_name,
+                .file_name_len = strlen(file_name),
+                .min_diff = {.diff = INT_MAX},
+            };
+            tll_push_back(icons, data);
         }
     }
 
@@ -680,12 +637,6 @@ lookup_icons(const icon_theme_list_t *themes, int icon_size,
                 tll_foreach(icons, icon_it) {
                     struct icon_data *icon = &icon_it->item;
 
-                    if (icon->app->icon.type != ICON_NONE) {
-                        free(icon->file_name);
-                        tll_remove(icons, icon_it);
-                        continue;
-                    }
-
                     if (!is_exact_match && icon->min_diff.diff <= diff)
                         continue;
 
@@ -733,12 +684,6 @@ lookup_icons(const icon_theme_list_t *themes, int icon_size,
         tll_foreach(icons, icon_it) {
             struct icon_data *icon = &icon_it->item;
 
-            if (icon->app->icon.type != ICON_NONE) {
-                free(icon->file_name);
-                tll_remove(icons, icon_it);
-                continue;
-            }
-
             if (icon->min_diff.type == ICON_NONE) {
                 assert(icon->min_diff.xdg_dir == NULL);
                 continue;
@@ -781,12 +726,6 @@ lookup_icons(const icon_theme_list_t *themes, int icon_size,
     /* Finally, look in XDG_DATA_DIRS/pixmaps */
     tll_foreach(icons, icon_it) {
         const struct icon_data *icon = &icon_it->item;
-
-        if (icon->app->icon.type != ICON_NONE) {
-            free(icon->file_name);
-            tll_remove(icons, icon_it);
-            continue;
-        }
 
         tll_foreach(*xdg_dirs, it) {
             int pixmaps_fd = openat(it->item.fd, "pixmaps", O_RDONLY | O_CLOEXEC);
