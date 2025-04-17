@@ -35,10 +35,12 @@
 * `--with-nth=N` command line option ([#438][438]).
 * `--accept-nth=N` command line option ([#493][493]).
 * `keyboard-focus=exclusive|on-demand` command line and config option ([#495][495]).
+* Add support for fallback icons in dmenu mode using comma-separated values in the icon metadata ([#504][504]).
 
 [438]: https://codeberg.org/dnkl/fuzzel/issues/438
 [493]: https://codeberg.org/dnkl/fuzzel/pulls/493
 [495]: https://codeberg.org/dnkl/fuzzel/pulls/495
+[504]: https://codeberg.org/dnkl/fuzzel/pulls/504
 
 
 ### Changed
@@ -90,6 +92,7 @@
 ### Security
 ### Contributors
 
+* @e-tho
 
 ## 1.11.1
 
