@@ -757,6 +757,9 @@ parse_section_main(struct context *ctx)
         return ret;
     }
 
+    else if (strcmp(key, "namespace") == 0)
+        return value_to_str(ctx, &conf->namespace);
+
     else if (strcmp(key, "output") == 0)
         return value_to_str(ctx, &conf->output);
 
