@@ -1588,6 +1588,7 @@ config_load(struct config *conf, const char *conf_path,
     bool ret = !errors_are_fatal;
     *conf = (struct config) {
         .output = NULL,
+        .namespace = xstrdup("launcher"),
         .prompt = xc32dup(U"> "),
         .placeholder = xc32dup(U""),
         .search_text = xc32dup(U""),
