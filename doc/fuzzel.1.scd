@@ -427,6 +427,9 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 	Exit immediately, without showing the UI, if stdin is
 	empty. dmenu mode only.
 
+*--print0*
+	Output lines NUL separated instead of newline seperated.
+
 *--log-level*={*info*,*warning*,*error*,*none*}
 	Log level, used both for log output on stderr as well as
 	syslog. Default: _warning_.

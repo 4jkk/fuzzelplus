@@ -32,10 +32,12 @@
 ## Unreleased
 ### Added
 
+* `--print0` command line option ([#514][514]).
 * Add support for fallback icons in dmenu mode using comma-separated
   values in the icon metadata ([#504][504]).
 
 [504]: https://codeberg.org/dnkl/fuzzel/pulls/504
+[514]: https://codeberg.org/dnkl/fuzzel/pulls/514
 
 
 ### Changed

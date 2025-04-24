@@ -234,7 +234,7 @@ out:
 
 bool
 dmenu_execute(const struct application *app, ssize_t index,
-              const struct prompt *prompt, enum dmenu_mode format, unsigned int column)
+              const struct prompt *prompt, enum dmenu_mode format, unsigned int column, char delim)
 {
     switch (format) {
     case DMENU_MODE_TEXT: {
@@ -248,7 +248,7 @@ dmenu_execute(const struct application *app, ssize_t index,
 
         char *text = ac32tombs(output);
         if (text != NULL) {
-            printf("%s\n", text);
+            printf("%s%c", text, delim);
         }
         free(column_output);
         free(text);
@@ -256,7 +256,7 @@ dmenu_execute(const struct application *app, ssize_t index,
     }
 
     case DMENU_MODE_INDEX:
-        printf("%zd\n", index);
+        printf("%zd%c", index, delim);
         break;
     }
 

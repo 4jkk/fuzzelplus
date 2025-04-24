@@ -407,11 +407,12 @@ print_usage(const char *prog_name)
            "     --index                     print selected entry's index instead of of the \n"
            "                                 entry's text (dmenu mode only)\n"
            "     --with-nth=N                display the N:th column (tab separated) of each\n"
-           "                                 input line (dmenu only)\n"
+           "                                 input line (dmenu mode only)\n"
            "     --accept-nth=N              output the N:th column (tab separated) of each\n"
-           "                                 input line (dmenu only)\n"
+           "                                 input line (dmenu mode only)\n"
            "  -R,--no-run-if-empty           exit immediately without showing UI if stdin\n"
            "                                 is empty (dmenu mode only)\n"
+           "     --print0                    output delimited by NUL (dmenu mode only)\n"
            "     --log-level={info|warning|error|none}\n"
            "                                 log level (warning)\n"
            "     --log-colorize=[never|always|auto]\n"
@@ -754,6 +755,7 @@ main(int argc, char *const *argv)
     #define OPT_HIDE_WHEN_PROMPT_EMPTY       297
     #define OPT_DMENU_WITH_NTH               298
     #define OPT_DMENU_ACCEPT_NTH             299
+    #define OPT_DMENU_PRINT_NULL             300
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -824,6 +826,7 @@ main(int argc, char *const *argv)
         {"index",                no_argument,       0, OPT_DMENU_INDEX},
         {"with-nth",             required_argument, 0, OPT_DMENU_WITH_NTH},
         {"accept-nth",           required_argument, 0, OPT_DMENU_ACCEPT_NTH},
+        {"print0",               no_argument,       0, OPT_DMENU_PRINT_NULL},
 
         /* Misc */
         {"log-level",            required_argument, 0, OPT_LOG_LEVEL},
@@ -882,6 +885,7 @@ main(int argc, char *const *argv)
         bool dmenu_mode_set:1;
         bool dmenu_exit_immediately_if_empty_set:1;
         bool dmenu_delim_set:1;
+        bool dmenu_output_delim_set:1;
         bool dmenu_with_nth_set:1;
         bool dmenu_accept_nth_set:1;
         bool layer_set:1;
@@ -1585,15 +1589,20 @@ main(int argc, char *const *argv)
             break;
 
         case OPT_DMENU_ACCEPT_NTH:
-                    if (sscanf(optarg, "%u", &cmdline_overrides.conf.dmenu.output_column) != 1) {
-                        fprintf(
-                            stderr,
-                            "%s: invalid accept-nth value (must be an integer)\n",
-                            optarg);
-                        return EXIT_FAILURE;
-                    }
-                    cmdline_overrides.dmenu_accept_nth_set = true;
-                    break;
+            if (sscanf(optarg, "%u", &cmdline_overrides.conf.dmenu.output_column) != 1) {
+                fprintf(
+                    stderr,
+                    "%s: invalid accept-nth value (must be an integer)\n",
+                    optarg);
+                return EXIT_FAILURE;
+            }
+            cmdline_overrides.dmenu_accept_nth_set = true;
+            break;
+
+        case OPT_DMENU_PRINT_NULL:
+            cmdline_overrides.conf.dmenu.output_delim = '\0';
+            cmdline_overrides.dmenu_output_delim_set = true;
+            break;
 
         case OPT_LOG_LEVEL: {
             int lvl = log_level_from_string(optarg);
@@ -1841,6 +1850,8 @@ main(int argc, char *const *argv)
         conf.dmenu.enabled = cmdline_overrides.conf.dmenu.enabled;
     if (cmdline_overrides.dmenu_delim_set)
         conf.dmenu.delim = cmdline_overrides.conf.dmenu.delim;
+    if (cmdline_overrides.dmenu_output_delim_set)
+        conf.dmenu.output_delim = cmdline_overrides.conf.dmenu.output_delim;
     if (cmdline_overrides.dmenu_mode_set)
         conf.dmenu.mode = cmdline_overrides.conf.dmenu.mode;
     if (cmdline_overrides.dmenu_exit_immediately_if_empty_set)
