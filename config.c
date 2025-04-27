@@ -1725,6 +1725,7 @@ out:
 void
 config_free(struct config *conf)
 {
+    free(conf->namespace);
     free(conf->output);
     free(conf->prompt);
     free(conf->placeholder);
