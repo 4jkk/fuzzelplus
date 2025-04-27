@@ -847,7 +847,6 @@ main(int argc, char *const *argv)
     struct {
         struct config conf;
 
-        bool namespace:1;
         bool dpi_aware_set:1;
         bool match_fields_set:1;
         bool icons_disabled_set:1;
