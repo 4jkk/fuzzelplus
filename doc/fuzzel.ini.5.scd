@@ -59,7 +59,7 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	is, a font name followed by a list of colon-separated
 	options. Most noteworthy is *:size=n*, which is used to set the
 	font size. Note that the font size is also affected by the
-	*dpi-aware* option.
+	*dpi-aware* option. See *FONT CONFIG* below for details.
 	
 	Examples:
 		- Dina:weight=bold:slant=italic
@@ -622,6 +622,31 @@ done by setting _action=none_; e.g. *delete-line-forward=none*.
 		- custom-18: _Mod1+18_
 		- custom-19: _Mod1+19_
 
+# FONT CONFIG
+
+Fontconfig uses a flexible string format for specifying fonts that
+allows you to define font families, styles, weights, and various
+properties. The basic syntax follows this pattern:
+
+	"Family Name:style=Style:weight=Weight:size=Size"
+
+Common Properties:
+
+- *family* - Font family name
+- *style* - italic, oblique, roman
+- *weight* - light, normal, bold, black (or numeric values 100-900)
+- *size* - Point size
+- *slant* - italic, oblique, roman
+- *width* - condensed, normal, expanded
+
+Fontconfig supports fallback fonts. You can specify multiple font
+families separated by commas, and fontconfig will try them in order:
+
+	"My Custom Font, DejaVu Sans:weight=bold, sans-serif"
+
+If a requested font doesn't have a particular character, fontconfig will
+search through available fonts to find one that does.
+	
 # SEE ALSO
 
 - *fuzzel*(1)
