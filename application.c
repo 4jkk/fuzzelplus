@@ -81,7 +81,7 @@ tokenize_cmdline(char *cmdline, char ***argv)
                  */
 
                 if (search_start != p) {
-                    LOG_ERR("command line contains non-specification compliant "
+                    LOG_ERR("command line contains non-specification-compliant "
                             "quoting (arguments must be quoted in whole)");
                     goto err;
                 }
