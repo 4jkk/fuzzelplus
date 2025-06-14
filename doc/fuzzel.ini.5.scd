@@ -639,13 +639,25 @@ Common Properties:
 - *slant* - italic, oblique, roman
 - *width* - condensed, normal, expanded
 
+
 Fontconfig supports fallback fonts. You can specify multiple font
-families separated by commas, and fontconfig will try them in order:
+families separated by commas. The fallback fonts are searched in the
+order they appear. If a glyph cannot be found in any of the fallback
+fonts, the dynamic fallback list from fontconfig (for the primary font)
+is searched. Ex:
 
 	"My Custom Font, DejaVu Sans:weight=bold, sans-serif"
 
-If a requested font doesn't have a particular character, fontconfig will
-search through available fonts to find one that does.
+Fontconfig always returns something unless you don't have any fonts installed,
+regardless of what font name you give it. You can check fonts that would be matched
+with `fc-match -s YourFontName`.
+
+The font library Fuzzel uses, fcft, will search the explicit fallbacks whenever a glyph
+cannot be found in the primary font. When it cannot find a glyph in the explicit
+fallbacks, then it searches the fontconfig fallbacks of the first font in Fuzzel's list.
+
+This design allows a custom fallback sequence as well as custom font options for each
+fallback.
 	
 # SEE ALSO
 
