@@ -372,6 +372,9 @@ print_usage(const char *prog_name)
            "                                 string\n"
            "     --select-index=INDEX        select the entry with index, not compatible with --select\n"
            "  -l,--lines                     number of matches to show\n"
+           "     --minimal-lines             adjust the number of lines to the\n"
+           "                                 minimum of --lines and the number\n"
+           "                                 of input lines (dmenu mode only)\n"
            "  -w,--width                     window width, in characters (margins and\n"
            "                                 borders not included)\n"
            "     --tabs=INT                  number of spaces a tab is expanded to (8)\n"
@@ -803,6 +806,7 @@ main(int argc, char *const *argv)
     #define OPT_GAMMA_CORRECT                300
     #define OPT_PRINT_TIMINGS                301
     #define OPT_SCALING_FILTER               302
+    #define OPT_MINIMAL_LINES                303
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -825,6 +829,7 @@ main(int argc, char *const *argv)
         {"select",               required_argument, 0, OPT_SELECT},
         {"select-index",         required_argument, 0, OPT_SELECT_INDEX},
         {"lines",                required_argument, 0, 'l'},
+        {"minimal-lines",        no_argument,       0, OPT_MINIMAL_LINES},
         {"width",                required_argument, 0, 'w'},
         {"tabs",                 required_argument, 0, OPT_TABS},
         {"horizontal-pad",       required_argument, 0, 'x'},
@@ -907,6 +912,7 @@ main(int argc, char *const *argv)
         bool x_margin_set : 1;
         bool y_margin_set : 1;
         bool lines_set:1;
+        bool minimal_lines_set:1;
         bool chars_set:1;
         bool tabs_set:1;
         bool pad_x_set:1;
@@ -1188,6 +1194,11 @@ main(int argc, char *const *argv)
                 return EXIT_FAILURE;
             }
             cmdline_overrides.lines_set = true;
+            break;
+
+        case OPT_MINIMAL_LINES:
+            cmdline_overrides.conf.minimal_lines = true;
+            cmdline_overrides.minimal_lines_set = true;
             break;
 
         case 'w':
@@ -1881,6 +1892,8 @@ main(int argc, char *const *argv)
         conf.margin.y = cmdline_overrides.conf.margin.y;
     if (cmdline_overrides.lines_set)
         conf.lines = cmdline_overrides.conf.lines;
+    if (cmdline_overrides.minimal_lines_set)
+        conf.minimal_lines = cmdline_overrides.conf.minimal_lines;
     if (cmdline_overrides.chars_set)
         conf.chars = cmdline_overrides.conf.chars;
     if (cmdline_overrides.tabs_set)
@@ -2084,6 +2097,74 @@ main(int argc, char *const *argv)
     if ((kb_manager = kb_manager_new()) == NULL)
         goto out;
 
+    /* Apply minimal-lines logic by buffering stdin and counting lines in dmenu mode BEFORE wayl_init */
+    char *input_buffer = NULL;
+    size_t input_buffer_size = 0;
+    int stdin_pipe[2] = {-1, -1};
+
+    if (conf.dmenu.enabled && conf.minimal_lines && !conf.prompt_only) {
+        /* Read all of stdin into a buffer */
+        size_t buffer_capacity = 16384;
+        input_buffer = xmalloc(buffer_capacity);
+        char delim = conf.dmenu.delim;
+        size_t line_count = 0;
+        int c;
+
+        while ((c = getchar()) != EOF) {
+            if (input_buffer_size >= buffer_capacity - 1) {
+                buffer_capacity *= 2;
+                input_buffer = xrealloc(input_buffer, buffer_capacity);
+            }
+            input_buffer[input_buffer_size++] = c;
+
+            if (c == delim) {
+                line_count++;
+            }
+        }
+
+        /* If buffer doesn't end with delimiter, count the last line */
+        if (input_buffer_size > 0 && input_buffer[input_buffer_size - 1] != delim) {
+            line_count++;
+        }
+
+        /* Apply minimal-lines logic */
+        const unsigned effective_lines = line_count < conf.lines
+            ? (unsigned)line_count
+            : conf.lines;
+
+        /* Update the configuration lines for window size calculation */
+        conf.lines = effective_lines;
+        matches_max_matches_per_page_set(matches, effective_lines);
+
+        /* Create a pipe to feed the buffered input back to dmenu_load_entries */
+        if (pipe2(stdin_pipe, O_CLOEXEC) < 0) {
+            LOG_ERRNO("failed to create stdin pipe for minimal-lines");
+            free(input_buffer);
+            goto out;
+        }
+
+        /* Replace stdin with our pipe's read end */
+        if (dup2(stdin_pipe[0], STDIN_FILENO) < 0) {
+            LOG_ERRNO("failed to redirect stdin for minimal-lines");
+            close(stdin_pipe[0]);
+            close(stdin_pipe[1]);
+            free(input_buffer);
+            goto out;
+        }
+
+        close(stdin_pipe[0]); /* Close the original read end since it's been duped */
+
+        /* Write the buffered input to the pipe in a separate thread or immediately */
+        if (write(stdin_pipe[1], input_buffer, input_buffer_size) != (ssize_t)input_buffer_size) {
+            LOG_ERRNO("failed to write buffered input to pipe");
+        }
+        close(stdin_pipe[1]); /* Close write end so dmenu_load_entries sees EOF */
+
+        /* Clean up the input buffer since it's been written to the pipe */
+        free(input_buffer);
+        input_buffer = NULL;
+    }
+
     if ((wayl = wayl_init(
              &conf, fdm, kb_manager, render, prompt, matches,
              &font_reloaded, &ctx)) == NULL)
@@ -2113,7 +2194,9 @@ main(int argc, char *const *argv)
 
     join_app_thread = true;
 
-    if (!conf.dmenu.exit_immediately_if_empty)
+    /* Only show window immediately if not using minimal-lines in dmenu mode */
+    if (!conf.dmenu.exit_immediately_if_empty &&
+        !(conf.dmenu.enabled && conf.minimal_lines))
         wayl_refresh(wayl);
 
     while (true) {

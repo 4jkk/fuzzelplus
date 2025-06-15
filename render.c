@@ -1339,8 +1339,9 @@ render_match_list(struct render *render, struct buffer *buf,
     }
 
     /* Erase background of the "empty" area, after the last match */
+    const size_t effective_lines = matches_max_matches_per_page(matches);
     render_match_entry_background(
-        render, match_count, render->conf->lines - match_count,
+        render, match_count, effective_lines - match_count,
         buf->pix[0], buf->width);
 
     for (size_t i = 0; i < match_count; i++) {
@@ -1590,7 +1591,7 @@ render_set_font_and_update_sizes(struct render *render, struct fcft_font *font,
         border_size;                         /* Bottom border */
 
     const unsigned width =
-        border_size +
+        border_size +                        /* Top border */
         x_margin +
         (max((W->advance.x + pt_or_px_as_pixels(
                   render, &render->conf->letter_spacing)),
