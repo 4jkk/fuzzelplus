@@ -499,6 +499,12 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 	
 	Setting it to *0* is the same as not specifying *--accept-nth* at all.
 
+*--preview-selection*
+	Produce an output each time the selection changes, without exiting.
+	This allows for real-time preview of the currently selected entry.
+	Only effective in dmenu mode. Default: only output on final
+	selection.
+
 *-R*,*--no-run-if-empty*
 	Exit immediately, without showing the UI, if stdin is
 	empty. dmenu mode only.

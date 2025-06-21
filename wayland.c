@@ -612,6 +612,17 @@ execute_selected(struct seat *seat, bool as_is, int custom_success_exit_code)
     }
 }
 
+/* Preview callback for when selection changes */
+static void
+preview_selection_callback(struct seat *seat)
+{
+    struct wayland *wayl = seat->wayl;
+    if (wayl->conf->dmenu.enabled && wayl->conf->dmenu.preview_selection) {
+        execute_selected(seat, false, -1);
+        wayl->status = KEEP_RUNNING;  // Override exit status to keep running
+    }
+}
+
 static bool
 execute_binding(struct seat *seat, const struct key_binding *binding, bool *refresh)
 {
@@ -2801,6 +2812,12 @@ wayl_init(const struct config *conf, struct fdm *fdm,
     update_size(wayl);
     wl_surface_commit(wayl->surface);
     wl_display_roundtrip(wayl->display);
+
+    /* Set up preview selection callback if we have at least one seat */
+    if (tll_length(wayl->seats) > 0) {
+        struct seat *first_seat = &tll_front(wayl->seats);
+        matches_set_selection_callback(wayl->matches, preview_selection_callback, first_seat);
+    }
 
     if (wl_display_prepare_read(wayl->display) != 0) {
         LOG_ERRNO("failed to prepare for reading wayland events");

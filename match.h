@@ -29,6 +29,11 @@ struct match {
 
 struct wayland;
 struct matches;
+struct seat;
+
+/* Callback function type for when selection changes */
+typedef void (*selection_changed_callback_t)(struct seat *seat);
+
 struct matches *matches_init(struct fdm *fdm, const struct prompt *prompt,
                              enum match_fields fields, enum match_mode mode,
                              bool sort_result,
@@ -39,6 +44,8 @@ struct matches *matches_init(struct fdm *fdm, const struct prompt *prompt,
 void matches_destroy(struct matches *matches);
 
 void matches_set_wayland(struct matches *matches, struct wayland *wayl);
+void matches_set_selection_callback(
+    struct matches *matches, selection_changed_callback_t callback, struct seat *seat);
 void matches_set_applications(
     struct matches *matches, struct application_list *applications);
 void matches_all_applications_loaded(struct matches *matches);

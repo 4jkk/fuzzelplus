@@ -478,6 +478,12 @@ All color values are in RGBA.
 	open a window, and will not print anything on stdout) if there's
 	nothing on stdin. Default: _no_.
 
+*preview-selection*
+	Boolean. If enabled, fuzzel will produce an output each time the
+	selection changes, without exiting. This allows for real-time
+	preview of the currently selected entry. Only effective in dmenu
+	mode. Default: _no_.
+
 
 # SECTION: key-bindings
 

@@ -69,6 +69,10 @@ struct matches {
     int delay_fd;
     enum delayed_update_type delayed_update_type;
 
+    /* Selection change callback */
+    selection_changed_callback_t selection_callback;
+    struct seat *callback_seat;
+
     /* Thread synchronization */
     struct {
         uint16_t count;
@@ -497,6 +501,15 @@ matches_set_wayland(struct matches *matches, struct wayland *wayl)
 }
 
 void
+matches_set_selection_callback(struct matches *matches,
+                               selection_changed_callback_t callback,
+                               struct seat *seat)
+{
+    matches->selection_callback = callback;
+    matches->callback_seat = seat;
+}
+
+void
 matches_all_applications_loaded(struct matches *matches)
 {
     matches->all_apps_loaded = true;
@@ -701,6 +714,8 @@ matches_idx_select(struct matches *matches, size_t idx)
         return false;
 
     matches->selected = match_get_idx(matches, idx);
+    if (matches->selection_callback)
+        matches->selection_callback(matches->callback_seat);
     return true;
 }
 
@@ -711,6 +726,8 @@ matches_selected_first(struct matches *matches)
         return false;
 
     matches->selected = 0;
+    if (matches->selection_callback)
+        matches->selection_callback(matches->callback_seat);
     return true;
 }
 
@@ -721,6 +738,8 @@ matches_selected_set(struct matches *matches, size_t idx)
         return false;
 
     matches->selected = idx;
+    if (matches->selection_callback)
+        matches->selection_callback(matches->callback_seat);
     return true;
 }
 
@@ -734,6 +753,8 @@ matches_selected_last(struct matches *matches)
     }
 
     matches->selected = matches->match_count - 1;
+    if (matches->selection_callback)
+        matches->selection_callback(matches->callback_seat);
     return true;
 }
 
@@ -742,9 +763,13 @@ matches_selected_prev(struct matches *matches, bool wrap)
 {
     if (matches->selected > 0) {
         matches->selected--;
+        if (matches->selection_callback)
+            matches->selection_callback(matches->callback_seat);
         return true;
     } else if (wrap && matches->match_count > 1) {
         matches->selected = matches->match_count - 1;
+        if (matches->selection_callback)
+            matches->selection_callback(matches->callback_seat);
         return true;
     }
 
@@ -756,9 +781,13 @@ matches_selected_next(struct matches *matches, bool wrap)
 {
     if (matches->selected + 1 < matches->match_count) {
         matches->selected++;
+        if (matches->selection_callback)
+            matches->selection_callback(matches->callback_seat);
         return true;
     } else if (wrap && matches->match_count > 1) {
         matches->selected = 0;
+        if (matches->selection_callback)
+            matches->selection_callback(matches->callback_seat);
         return true;
     }
 
@@ -772,9 +801,13 @@ matches_selected_prev_page(struct matches *matches, bool scrolling)
     if (page_no > 0) {
         assert(matches->selected >= matches->max_matches_per_page);
         matches->selected -= matches->max_matches_per_page;
+        if (matches->selection_callback)
+            matches->selection_callback(matches->callback_seat);
         return true;
     } else if (!scrolling && matches->selected > 0) {
         matches->selected = 0;
+        if (matches->selection_callback)
+            matches->selection_callback(matches->callback_seat);
         return true;
     }
 
@@ -789,9 +822,13 @@ matches_selected_next_page(struct matches *matches, bool scrolling)
         matches->selected = min(
             matches->selected + matches->max_matches_per_page,
             matches->match_count - 1);
+        if (matches->selection_callback)
+            matches->selection_callback(matches->callback_seat);
         return true;
     } else if (!scrolling && matches->selected < matches->match_count - 1) {
         matches->selected = matches->match_count - 1;
+        if (matches->selection_callback)
+            matches->selection_callback(matches->callback_seat);
         return true;
     }
 

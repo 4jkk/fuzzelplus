@@ -435,6 +435,8 @@ print_usage(const char *prog_name)
            "                                 input line (dmenu only)\n"
            "     --accept-nth=N              output the N:th column (tab separated) of each\n"
            "                                 input line (dmenu only)\n"
+           "     --preview-selection         produce an output each time the selection\n"
+           "                                 changes, without exiting (dmenu only)\n"
            "  -R,--no-run-if-empty           exit immediately without showing UI if stdin\n"
            "                                 is empty (dmenu mode only)\n"
            "     --log-level={info|warning|error|none}\n"
@@ -831,10 +833,11 @@ main(int argc, char *const *argv)
     #define OPT_HIDE_WHEN_PROMPT_EMPTY       297
     #define OPT_DMENU_WITH_NTH               298
     #define OPT_DMENU_ACCEPT_NTH             299
-    #define OPT_GAMMA_CORRECT                300
-    #define OPT_PRINT_TIMINGS                301
-    #define OPT_SCALING_FILTER               302
-    #define OPT_MINIMAL_LINES                303
+    #define OPT_PREVIEW_SELECTION            300
+    #define OPT_GAMMA_CORRECT                301
+    #define OPT_PRINT_TIMINGS                302
+    #define OPT_SCALING_FILTER               303
+    #define OPT_MINIMAL_LINES                304
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -909,6 +912,7 @@ main(int argc, char *const *argv)
         {"index",                no_argument,       0, OPT_DMENU_INDEX},
         {"with-nth",             required_argument, 0, OPT_DMENU_WITH_NTH},
         {"accept-nth",           required_argument, 0, OPT_DMENU_ACCEPT_NTH},
+        {"preview-selection",    no_argument,       0, OPT_PREVIEW_SELECTION},
 
         /* Misc */
         {"log-level",            required_argument, 0, OPT_LOG_LEVEL},
@@ -972,6 +976,7 @@ main(int argc, char *const *argv)
         bool dmenu_delim_set:1;
         bool dmenu_with_nth_set:1;
         bool dmenu_accept_nth_set:1;
+        bool dmenu_preview_selection_set:1;
         bool layer_set:1;
         bool keyboard_focus_set:1;
         bool no_exit_on_keyboard_focus_loss_set:1;
@@ -1699,6 +1704,11 @@ main(int argc, char *const *argv)
                     cmdline_overrides.dmenu_accept_nth_set = true;
                     break;
 
+        case OPT_PREVIEW_SELECTION:
+            cmdline_overrides.conf.dmenu.preview_selection = true;
+            cmdline_overrides.dmenu_preview_selection_set = true;
+            break;
+
         case OPT_LOG_LEVEL: {
             int lvl = log_level_from_string(optarg);
             if (lvl < 0) {
@@ -1992,6 +2002,8 @@ main(int argc, char *const *argv)
         conf.dmenu.render_column = cmdline_overrides.conf.dmenu.render_column;
     if (cmdline_overrides.dmenu_accept_nth_set)
         conf.dmenu.output_column = cmdline_overrides.conf.dmenu.output_column;
+    if (cmdline_overrides.dmenu_preview_selection_set)
+        conf.dmenu.preview_selection = cmdline_overrides.conf.dmenu.preview_selection;
     if (cmdline_overrides.conf.list_executables_in_path)
         conf.list_executables_in_path = cmdline_overrides.conf.list_executables_in_path;
     if (cmdline_overrides.render_workers_set)

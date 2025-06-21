@@ -52,6 +52,9 @@
   present in the terminal command string, it will be replaced with the
   application command instead of appending the command at the end. Useful
   for setting the title or app_id. ([#600][600])
+* `--preview-selection` command line option for dmenu mode, which
+  outputs the currently selected entry each time the selection changes,
+  without exiting ([#496][496]).
 
 [504]: https://codeberg.org/dnkl/fuzzel/pulls/504
 [512]: https://codeberg.org/dnkl/fuzzel/pulls/512
@@ -60,6 +63,7 @@
 [144]: https://codeberg.org/dnkl/fuzzel/issues/144
 [594]: https://codeberg.org/dnkl/fuzzel/issues/594
 [600]: https://codeberg.org/dnkl/fuzzel/issues/600
+[496]: https://codeberg.org/dnkl/fuzzel/pulls/496
 
 ### Changed
 

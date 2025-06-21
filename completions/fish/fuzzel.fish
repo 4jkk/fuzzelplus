@@ -44,6 +44,7 @@ complete -c fuzzel -x -s y -l vertical-pad                                      
 complete -c fuzzel -x -s P -l inner-pad                                                                         -d "vertical padding between prompt and matches, in pixels (0)"
 complete -c fuzzel -x -s b -l background                                                                        -d "background color (fdf6e3ff)"
 complete -c fuzzel -x -s t -l text-color                                                                        -d "text color (657b83ff)"
+complete -c fuzzel         -l preview-selection                                                                 -d "produce an output each time the selection changes, without exiting (dmenu only)"
 complete -c fuzzel -x      -l prompt-color                                                                      -d "color of the prompt text (586e75ff)"
 complete -c fuzzel -x      -l placeholder-color                                                                 -d "color of the placeholder text (93a1a1ff)"
 complete -c fuzzel -x      -l input-color                                                                       -d "color of the input string (657b83ff)"

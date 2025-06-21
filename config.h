@@ -167,6 +167,7 @@ struct config {
         char delim;
         unsigned int render_column;
         unsigned int output_column;
+        bool preview_selection;
     } dmenu;
 
     enum anchors anchor;
