@@ -299,24 +299,9 @@ remove_from_key_bindings_list(struct config_key_binding_list *bindings,
         if (remove_count++ == 0)
             remove_first_idx = i;
 
-        char *modifier_names = modifiers_to_str(&binding->modifiers);
-        char sym_name[64];
-        xkb_keysym_get_name(binding->k.sym, sym_name, sizeof(sym_name));
-
-        // TODO: improve log msg ?
-        /* treat default keybindings differently */
-        if (binding->path == NULL) {
-            // "(default) [key-bindings].%s: was previously triggered by %s%s, unmapping"
-            LOG_WARN("unmapping default keybinding: %s: was previously triggered by %s%s",
-                     binding_action_map[action],
-                     modifier_names, sym_name);
-        } else {
-            // "%s:%d: [key-bindings].%s: was previously triggered by %s%s, unmapping"
-            LOG_WARN("unmapping keybinding defined at %s:%d: %s: was previously triggered by %s%s",
-                     binding->path, binding->lineno,
-                     binding_action_map[action],
-                     modifier_names, sym_name);
-        }
+        // Action rebinding is normal behavior when users explicitly configure
+        // new bindings for an action, so we don't warn about it. Key collision
+        // warnings are handled separately in resolve_key_binding_collisions().
 
         assert(remove_first_idx + remove_count - 1 == i);
         //free_key_binding(binding);
