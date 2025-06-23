@@ -572,10 +572,11 @@ get_xdg_activation_token(struct seat *seat, const char *app_id,
 }
 
 static void
-execute_selected(struct seat *seat, bool as_is, int custom_success_exit_code)
+execute_selected(struct seat *seat, bool as_is, int custom_success_exit_code, bool preview)
 {
     struct wayland *wayl = seat->wayl;
-    wayl->status = EXIT;
+    if (!preview)
+        wayl->status = EXIT;
 
     const struct match *match = !as_is ? matches_get_match(wayl->matches) : NULL;
     struct application *app = match != NULL ? match->application : NULL;
@@ -583,44 +584,56 @@ execute_selected(struct seat *seat, bool as_is, int custom_success_exit_code)
 
     if (wayl->conf->dmenu.enabled) {
         dmenu_execute(app, index, wayl->prompt, wayl->conf->dmenu.mode, wayl->conf->dmenu.output_column);
-        wayl->exit_code = custom_success_exit_code >= 0
-            ? custom_success_exit_code
-            : EXIT_SUCCESS;
-        wayl->status = EXIT_UPDATE_CACHE;
-        if (app != NULL)
-            app->count++;
-    } else {
-        char *xdg_activation_token = NULL;
-        if (wayl->xdg_activation_v1 != NULL && app != NULL && app->startup_notify)
-            get_xdg_activation_token(seat, app->app_id, &xdg_activation_token);
-
-        bool success = application_execute(
-            app, wayl->prompt, wayl->conf->launch_prefix, xdg_activation_token);
-        free(xdg_activation_token);
-
-        wayl->exit_code = success
-            ? (custom_success_exit_code >= 0
-               ? custom_success_exit_code
-               : EXIT_SUCCESS)
-            : EXIT_FAILURE;
-
-        if (success) {
+        if (!preview) {
+            wayl->exit_code = custom_success_exit_code >= 0
+                ? custom_success_exit_code
+                : EXIT_SUCCESS;
             wayl->status = EXIT_UPDATE_CACHE;
             if (app != NULL)
                 app->count++;
         }
+    } else {
+        if (!preview) {
+            char *xdg_activation_token = NULL;
+            if (wayl->xdg_activation_v1 != NULL && app != NULL && app->startup_notify)
+                get_xdg_activation_token(seat, app->app_id, &xdg_activation_token);
+
+            bool success = application_execute(
+                app, wayl->prompt, wayl->conf->launch_prefix, xdg_activation_token);
+            free(xdg_activation_token);
+
+            wayl->exit_code = success
+                ? (custom_success_exit_code >= 0
+                   ? custom_success_exit_code
+                   : EXIT_SUCCESS)
+                : EXIT_FAILURE;
+
+            if (success) {
+                wayl->status = EXIT_UPDATE_CACHE;
+                if (app != NULL)
+                    app->count++;
+            }
+        }
     }
+}
+
+/* Preview selection output - called when selection changes in preview mode */
+static void
+preview_selection(struct seat *seat)
+{
+    struct wayland *wayl = seat->wayl;
+
+    if (!(wayl->conf->dmenu.enabled && wayl->conf->dmenu.preview_selection))
+        return;
+
+    execute_selected(seat, false, -1, true);
 }
 
 /* Preview callback for when selection changes */
 static void
 preview_selection_callback(struct seat *seat)
 {
-    struct wayland *wayl = seat->wayl;
-    if (wayl->conf->dmenu.enabled && wayl->conf->dmenu.preview_selection) {
-        execute_selected(seat, false, -1);
-        wayl->status = KEEP_RUNNING;  // Override exit status to keep running
-    }
+    preview_selection(seat);
 }
 
 static bool
@@ -753,18 +766,18 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
         return true;
 
     case BIND_ACTION_MATCHES_EXECUTE:
-        execute_selected(seat, false, -1);
+        execute_selected(seat, false, -1, false);
         return true;
 
     case BIND_ACTION_MATCHES_EXECUTE_OR_NEXT:
         if (matches_get_total_count(wayl->matches) == 1)
-            execute_selected(seat, false, -1);
+            execute_selected(seat, false, -1, false);
         else
             *refresh = matches_selected_next(wayl->matches, true);
         return true;
 
     case BIND_ACTION_MATCHES_EXECUTE_INPUT:
-        execute_selected(seat, true, -1);
+        execute_selected(seat, true, -1, false);
         return true;
 
     case BIND_ACTION_MATCHES_PREV:
@@ -819,7 +832,7 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
     case BIND_ACTION_CUSTOM_18:
     case BIND_ACTION_CUSTOM_19: {
         const size_t idx = action - BIND_ACTION_CUSTOM_1;
-        execute_selected(seat, false, 10 + idx);
+        execute_selected(seat, false, 10 + idx, false);
         return true;
     }
 
@@ -1126,7 +1139,7 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
 
     if (state == WL_POINTER_BUTTON_STATE_RELEASED) {
         if (button == BTN_LEFT && seat->pointer.hovered_row_idx != -1) {
-            execute_selected(seat, false, -1);
+            execute_selected(seat, false, -1, false);
         }
 
         else if (button == BTN_RIGHT) {
