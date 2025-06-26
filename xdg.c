@@ -1,5 +1,6 @@
 #include "xdg.h"
 
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
@@ -421,7 +422,8 @@ parse_desktop_file(int fd, char *id, const char32_t *file_basename_lowercase,
                 }
 
                 // Calculate final string size
-                size_t final_len = terminal_len + (occurrences * (exec_len - placeholder_len)) + 1;
+                assert(terminal_len >= occurrences * placeholder_len); // should be true, so let's assert it is
+                size_t final_len = terminal_len - occurrences * placeholder_len + occurrences * exec_len + 1;
                 exec_with_terminal = xmalloc(final_len);
 
                 // Replace all {cmd} occurrences
