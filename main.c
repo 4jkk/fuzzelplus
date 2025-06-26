@@ -945,6 +945,7 @@ main(int argc, char *const *argv)
         bool y_margin_set : 1;
         bool lines_set:1;
         bool minimal_lines_set:1;
+        bool hide_prompt_set:1;
         bool chars_set:1;
         bool tabs_set:1;
         bool pad_x_set:1;
@@ -1235,6 +1236,7 @@ main(int argc, char *const *argv)
 
         case OPT_HIDE_PROMPT:
             cmdline_overrides.conf.hide_prompt = true;
+            cmdline_overrides.hide_prompt_set = true;
             break;
 
         case 'w':
@@ -1927,7 +1929,7 @@ main(int argc, char *const *argv)
         conf.icons_enabled = cmdline_overrides.conf.icons_enabled;
     if (cmdline_overrides.hide_when_prompt_empty_set)
         conf.hide_when_prompt_empty = cmdline_overrides.conf.hide_when_prompt_empty;
-    if (cmdline_overrides.conf.hide_prompt)
+    if (cmdline_overrides.hide_prompt_set)
         conf.hide_prompt = cmdline_overrides.conf.hide_prompt;
     if (cmdline_overrides.anchor_set)
         conf.anchor = cmdline_overrides.conf.anchor;
