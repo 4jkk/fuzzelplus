@@ -12,5 +12,9 @@ void dmenu_load_entries(
     int event_fd, int abort_fd);
 bool dmenu_execute(const struct application *app, ssize_t index,
                    const struct prompt *prompt, enum dmenu_mode format, unsigned int column);
+
+/* Get the output string that would be printed by dmenu_execute (for preview comparison) */
+char *dmenu_get_output_string(const struct application *app, ssize_t index,
+                              const struct prompt *prompt, enum dmenu_mode format, unsigned int column);
 void dmenu_try_icon_list(struct application_list *applications,
                                   icon_theme_list_t themes, int icon_size);

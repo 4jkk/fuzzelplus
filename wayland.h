@@ -106,3 +106,6 @@ void wayl_clipboard_done(struct wayland *wayl);
 bool wayl_do_linear_blending(const struct wayland *wayl);
 
 void wayl_resized(struct wayland *wayl);
+
+/* Setup preview selection callback for dmenu mode */
+void wayl_setup_preview_selection(struct wayland *wayl, struct matches *matches);

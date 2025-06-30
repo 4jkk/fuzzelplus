@@ -85,3 +85,7 @@ bool matches_selected_next(struct matches *matches, bool wrap);
 
 bool matches_selected_prev_page(struct matches *matches, bool scrolling);
 bool matches_selected_next_page(struct matches *matches, bool scrolling);
+
+/* Functions for preview output comparison */
+const char *matches_get_last_preview_output(const struct matches *matches);
+void matches_set_last_preview_output(struct matches *matches, const char *output);

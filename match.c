@@ -72,6 +72,8 @@ struct matches {
     /* Selection change callback */
     selection_changed_callback_t selection_callback;
     struct seat *callback_seat;
+    bool initial_preview_triggered;
+    char *last_preview_output;
 
     /* Thread synchronization */
     struct {
@@ -390,6 +392,8 @@ matches_init(struct fdm *fdm, const struct prompt *prompt,
         .delay_fd = -1,
         .delay_ms = delay_ms,
         .delay_limit = delay_limit,
+        .initial_preview_triggered = false,
+        .last_preview_output = NULL,
     };
 
     if (workers > 0) {
@@ -487,6 +491,7 @@ matches_destroy(struct matches *matches)
     free(matches->workers.threads);
     free(matches->matches);
     free(matches->workers.old_matches);
+    free(matches->last_preview_output);
     mtx_destroy(&matches->workers.lock);
     sem_destroy(&matches->workers.start);
     sem_destroy(&matches->workers.done);
@@ -498,6 +503,9 @@ matches_set_wayland(struct matches *matches, struct wayland *wayl)
 {
     assert(matches->wayl == NULL);
     matches->wayl = wayl;
+
+    /* Set up preview selection callback if preview selection is enabled */
+    wayl_setup_preview_selection(wayl, matches);
 }
 
 void
@@ -1456,8 +1464,15 @@ matches_update_internal(struct matches *matches, bool incremental)
                   sizeof(matches->matches[0]), &match_compar);
         }
 
-        if (matches->selected >= matches->match_count && matches->selected > 0)
+        if (matches->selected >= matches->match_count && matches->selected > 0) {
             matches->selected = matches->match_count - 1;
+            if (matches->selection_callback)
+                matches->selection_callback(matches->callback_seat);
+        } else if (matches->match_count > 0 && matches->selection_callback && !matches->initial_preview_triggered) {
+            /* Trigger initial preview for the first match when no search text */
+            matches->selection_callback(matches->callback_seat);
+            matches->initial_preview_triggered = true;
+        }
 
         matches->page_count = matches->max_matches_per_page > 0
             ? ((matches->match_count + (matches->max_matches_per_page - 1)) /
@@ -1619,8 +1634,16 @@ matches_update_internal(struct matches *matches, bool incremental)
            matches->max_matches_per_page)
         : 1;
 
-    if (matches->selected >= matches->match_count && matches->selected > 0)
+    bool selection_changed = false;
+    if (matches->selected >= matches->match_count && matches->selected > 0) {
         matches->selected = matches->match_count - 1;
+        selection_changed = true;
+    }
+
+    /* Trigger callback if selection changed or if we have matches and a callback */
+    if (matches->selection_callback && (selection_changed || matches->match_count > 0)) {
+        matches->selection_callback(matches->callback_seat);
+    }
 
     free(tok_lengths);
     free(tokens);
@@ -1698,4 +1721,17 @@ matches_update_incremental(struct matches *matches)
     }
 
     matches_update_internal(matches, !need_full_update);
+}
+
+const char *
+matches_get_last_preview_output(const struct matches *matches)
+{
+    return matches->last_preview_output;
+}
+
+void
+matches_set_last_preview_output(struct matches *matches, const char *output)
+{
+    free(matches->last_preview_output);
+    matches->last_preview_output = output ? xstrdup(output) : NULL;
 }

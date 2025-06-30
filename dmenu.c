@@ -239,7 +239,19 @@ out:
 
 bool
 dmenu_execute(const struct application *app, ssize_t index,
-              const struct prompt *prompt, enum dmenu_mode format, unsigned int column)
+             const struct prompt *prompt, enum dmenu_mode format, unsigned int column)
+{
+    char *output_string = dmenu_get_output_string(app, index, prompt, format, column);
+    if (output_string != NULL) {
+        printf("%s\n", output_string);
+        free(output_string);
+    }
+    return output_string != NULL;
+}
+
+char *
+dmenu_get_output_string(const struct application *app, ssize_t index,
+             const struct prompt *prompt, enum dmenu_mode format, unsigned int column)
 {
     switch (format) {
     case DMENU_MODE_TEXT: {
@@ -254,20 +266,20 @@ dmenu_execute(const struct application *app, ssize_t index,
         }
 
         char *text = ac32tombs(output);
-        if (text != NULL)
-            printf("%s\n", text);
-
         free(column_output);
-        free(text);
-        break;
+        return text;
     }
 
-    case DMENU_MODE_INDEX:
-        printf("%zd\n", index);
-        break;
+    case DMENU_MODE_INDEX: {
+        size_t len = snprintf(NULL, 0, "%zd", index);
+        char *text = xmalloc(len + 1);
+        snprintf(text, len + 1, "%zd", index);
+        return text;
     }
 
-    return true;
+    }
+
+    return NULL;
 }
 
 static void

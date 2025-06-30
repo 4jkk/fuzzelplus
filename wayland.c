@@ -626,14 +626,43 @@ preview_selection(struct seat *seat)
     if (!(wayl->conf->dmenu.enabled && wayl->conf->dmenu.preview_selection))
         return;
 
-    execute_selected(seat, false, -1, true);
+    const struct match *match = matches_get_match(wayl->matches);
+    char *current_output = NULL;
+    if (match != NULL && match->application != NULL) {
+        ssize_t index = match->application->index;
+        current_output = dmenu_get_output_string(match->application, index, wayl->prompt, wayl->conf->dmenu.mode, wayl->conf->dmenu.output_column);
+    }
+
+    struct matches *matches = wayl->matches;
+    const char *last_output = matches_get_last_preview_output(matches);
+    bool should_emit = false;
+
+    if (last_output == NULL && current_output != NULL) {
+        should_emit = true;
+    } else if (last_output != NULL && current_output == NULL) {
+        should_emit = true;
+    } else if (last_output != NULL && current_output != NULL) {
+        should_emit = strcmp(last_output, current_output) != 0;
+    }
+
+    if (should_emit) {
+        matches_set_last_preview_output(matches, current_output);
+        execute_selected(seat, false, -1, true);
+    }
+
+    free(current_output);
 }
 
-/* Preview callback for when selection changes */
-static void
-preview_selection_callback(struct seat *seat)
+/* Setup preview selection callback for dmenu mode */
+void
+wayl_setup_preview_selection(struct wayland *wayl, struct matches *matches)
 {
-    preview_selection(seat);
+    if (wayl->conf->dmenu.enabled && wayl->conf->dmenu.preview_selection) {
+        if (tll_length(wayl->seats) > 0) {
+            struct seat *first_seat = &tll_front(wayl->seats);
+            matches_set_selection_callback(matches, preview_selection, first_seat);
+        }
+    }
 }
 
 static bool
@@ -1256,7 +1285,7 @@ wl_touch_up(void *data, struct wl_touch *wl_touch, uint32_t serial,
 
                 /* If user tapped on a valid row, select and execute it */
                 if (matches_idx_select(wayl->matches, tapped_row)) {
-                    execute_selected(seat, false, -1);
+                    execute_selected(seat, false, -1, false);
                 } else {
                     /* Tapped on empty area or input field - focus input */
                     wayl_refresh(wayl);
@@ -2826,11 +2855,6 @@ wayl_init(const struct config *conf, struct fdm *fdm,
     wl_surface_commit(wayl->surface);
     wl_display_roundtrip(wayl->display);
 
-    /* Set up preview selection callback if we have at least one seat */
-    if (tll_length(wayl->seats) > 0) {
-        struct seat *first_seat = &tll_front(wayl->seats);
-        matches_set_selection_callback(wayl->matches, preview_selection_callback, first_seat);
-    }
 
     if (wl_display_prepare_read(wayl->display) != 0) {
         LOG_ERRNO("failed to prepare for reading wayland events");
