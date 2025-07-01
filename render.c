@@ -100,6 +100,9 @@ struct render {
     } workers;
 
     mtx_t *icon_lock;
+
+    /* Horizontal scrolling for long input */
+    int input_glyph_offset;
 };
 
 static pixman_color_t
@@ -429,6 +432,27 @@ render_cursor(const struct render *render, int x, int baseline, pixman_image_t *
     }
 }
 
+static void
+adjust_input_scroll_offset(struct render *render, int cursor_pos, int total_width, int available_width)
+{
+    /* Adjust glyph offset based on cursor position */
+    if (cursor_pos < render->input_glyph_offset) {
+        render->input_glyph_offset = cursor_pos;
+    } else if (cursor_pos > render->input_glyph_offset + available_width) {
+        render->input_glyph_offset = cursor_pos - available_width;
+    }
+
+    /* Adjust offset if there's free space available */
+    if (total_width - render->input_glyph_offset < available_width) {
+        render->input_glyph_offset = max(0, total_width - available_width);
+    }
+
+    /* Ensure offset is non-negative */
+    if (render->input_glyph_offset < 0) {
+        render->input_glyph_offset = 0;
+    }
+}
+
 void
 render_prompt(struct render *render, struct buffer *buf,
               const struct prompt *prompt, const struct matches *matches)
@@ -459,6 +483,10 @@ render_prompt(struct render *render, struct buffer *buf,
     int x = render->border_size + render->x_margin;
     int y = render->border_size + render->y_margin + render_baseline(render);
 
+    int stats_width = conf->match_counter
+        ? render_match_count(render, buf, prompt, matches)
+        : 0;
+
     /* Erase background */
     pixman_color_t bg = render->pix_background_color;
     pixman_image_fill_rectangles(
@@ -466,12 +494,8 @@ render_prompt(struct render *render, struct buffer *buf,
         &(pixman_rectangle16_t){
             render->border_size + render->x_margin,
             render->border_size + render->y_margin,
-            buf->width - 2 * (render->border_size + render->x_margin),
+            buf->width - 2 * (render->border_size + render->x_margin) - stats_width,
             render->row_height});
-
-    int stats_width = conf->match_counter
-        ? render_match_count(render, buf, prompt, matches)
-        : 0;
 
     const int max_x =
         buf->width - render->border_size - render->x_margin - stats_width;
@@ -537,16 +561,64 @@ render_prompt(struct render *render, struct buffer *buf,
     }
 
     if (input_run != NULL && !(conf->password_mode.enabled && !use_placeholder)) {
+        /* Calculate total width and cursor position for scrolling */
+        int total_width = 0;
+        int cursor_pos = 0;
+        int available_width = max_x - x;
+
         for (size_t i = 0; i < input_run->count; i++) {
             const struct fcft_glyph *glyph = input_run->glyphs[i];
-            if (x + glyph->width > max_x)
-                goto out;
+            total_width += glyph->advance.x;
 
-            render_glyph(buf->pix[0], glyph, x, y,
-                         use_placeholder
-                             ? &render->pix_placeholder_color
-                             : &render->pix_input_color);
-            x += glyph->advance.x;
+            const int cur_cluster = input_run->cluster[i];
+            const int next_cluster = i + 1 < input_run->count
+                ? input_run->cluster[i + 1] : INT_MAX;
+
+            if (cursor_location > cur_cluster && cursor_location <= next_cluster) {
+                cursor_pos = total_width;
+            }
+        }
+
+        /* Handle cursor at end of text */
+        if (cursor_location >= text_len) {
+            cursor_pos = total_width;
+        }
+
+        adjust_input_scroll_offset(render, cursor_pos, total_width, available_width);
+
+        /* Render visible portion of text */
+        int render_x = x - render->input_glyph_offset;
+        int current_width = 0;
+
+        for (size_t i = 0; i < input_run->count; i++) {
+            const struct fcft_glyph *glyph = input_run->glyphs[i];
+
+            /* Skip glyphs that are completely to the left of visible area */
+            if (current_width + glyph->advance.x <= render->input_glyph_offset) {
+                current_width += glyph->advance.x;
+                continue;
+            }
+
+            /* Stop if this glyph would start beyond the visible area */
+            if (current_width >= render->input_glyph_offset + available_width) {
+                break;
+            }
+
+            int glyph_x = render_x + current_width;
+
+            /* Only render if the glyph fits completely within bounds */
+            if (glyph_x >= x && glyph_x + glyph->width <= max_x) {
+                render_glyph(buf->pix[0], glyph, glyph_x, y,
+                             use_placeholder
+                                 ? &render->pix_placeholder_color
+                                 : &render->pix_input_color);
+            }
+            /* If glyph would overflow the right edge, stop rendering entirely */
+            else if (glyph_x + glyph->width > max_x) {
+                break;
+            }
+
+            current_width += glyph->advance.x;
 
             /* Cursor */
             const int cur_cluster = input_run->cluster[i];
@@ -556,11 +628,52 @@ render_prompt(struct render *render, struct buffer *buf,
             if (cursor_location > cur_cluster &&
                 cursor_location <= next_cluster)
             {
-                render_cursor(render, x, y, buf->pix[0]);
+                int cursor_x = render_x + current_width;
+                if (cursor_x >= x && cursor_x < max_x) {
+                    render_cursor(render, cursor_x, y, buf->pix[0]);
+                }
+            }
+        }
+
+        /* Handle cursor at end of text */
+        if (cursor_location >= text_len) {
+            int cursor_x = render_x + total_width;
+            if (cursor_x >= x && cursor_x < max_x) {
+                render_cursor(render, cursor_x, y, buf->pix[0]);
             }
         }
     } else {
         char32_t prev = 0;
+
+        /* Calculate character widths and positions for horizontal scrolling */
+        int *widths = xmalloc(text_len * sizeof(int));
+        int *positions = xmalloc((text_len + 1) * sizeof(int));
+        positions[0] = 0;
+
+        for (size_t i = 0; i < text_len; i++) {
+            char32_t wc = conf->password_mode.enabled && !use_placeholder
+                ? conf->password_mode.character
+                : ptext[i];
+            const struct fcft_glyph *glyph = fcft_rasterize_char_utf32(font, wc, subpixel);
+
+            if (glyph != NULL) {
+                widths[i] = glyph->advance.x + pt_or_px_as_pixels(render, &render->conf->letter_spacing);
+            } else {
+                widths[i] = 0;
+            }
+            positions[i + 1] = positions[i] + widths[i];
+        }
+
+        int total_width = positions[text_len];
+        int available_width = max_x - x;
+
+        /* Calculate cursor position in pixels */
+        int cursor_pos = cursor_location <= text_len ? positions[cursor_location] : total_width;
+
+        adjust_input_scroll_offset(render, cursor_pos, total_width, available_width);
+
+        /* Render the visible portion of input text */
+        int render_x = x - render->input_glyph_offset;
 
         for (size_t i = 0; i < text_len; i++) {
             if (conf->password_mode.enabled &&
@@ -568,6 +681,16 @@ render_prompt(struct render *render, struct buffer *buf,
                 !use_placeholder)
             {
                 continue;
+            }
+
+            /* Skip characters that are completely to the left of visible area */
+            if (positions[i + 1] <= render->input_glyph_offset) {
+                continue;
+            }
+
+            /* Stop if we're completely to the right of visible area */
+            if (positions[i] >= render->input_glyph_offset + available_width) {
+                break;
             }
 
             char32_t wc = conf->password_mode.enabled && !use_placeholder
@@ -585,25 +708,32 @@ render_prompt(struct render *render, struct buffer *buf,
             long x_kern;
             fcft_kerning(font, prev, wc, &x_kern, NULL);
 
-            x += x_kern;
+            int char_x = render_x + positions[i] + x_kern;
 
-            if (x + glyph->width >= max_x)
-                goto out;
-
-            render_glyph(
-                buf->pix[0], glyph, x, y,
-                use_placeholder
-                    ? &render->pix_placeholder_color
-                    : &render->pix_input_color);
-            x += glyph->advance.x;
-            x += pt_or_px_as_pixels(render, &render->conf->letter_spacing);
-
-            /* Cursor */
-            if (cursor_location > 0 && cursor_location - 1 == i)
-                render_cursor(render, x, y, buf->pix[0]);
+            /* Only render if the glyph is completely within the visible area */
+            if (char_x >= x && char_x + glyph->width <= max_x) {
+                render_glyph(
+                    buf->pix[0], glyph, char_x, y,
+                    use_placeholder
+                        ? &render->pix_placeholder_color
+                        : &render->pix_input_color);
+            }
 
             prev = wc;
         }
+
+        /* Render cursor at the correct position */
+        if (cursor_location > 0 &&
+            !(conf->password_mode.enabled && conf->password_mode.character == U'\0'))
+        {
+            int cursor_x = render_x + cursor_pos;
+            if (cursor_x >= x && cursor_x < max_x) {
+                render_cursor(render, cursor_x, y, buf->pix[0]);
+            }
+        }
+
+        free(widths);
+        free(positions);
     }
 
 out:
@@ -615,6 +745,11 @@ out:
         render->placeholder_text_run = input_run;
     else if (!use_placeholder || input_run != render->placeholder_text_run)
         fcft_text_run_destroy(input_run);
+
+    /* Clamp input glyph offset to ensure it's always non-negative */
+    if (render->input_glyph_offset < 0) {
+        render->input_glyph_offset = 0;
+    }
 }
 
 static void
@@ -1461,6 +1596,7 @@ render_init(const struct config *conf, mtx_t *icon_lock)
     *render = (struct render){
         .conf = conf,
         .icon_lock = icon_lock,
+        .input_glyph_offset = 0,
     };
 
     if (sem_init(&render->workers.start, 0, 0) < 0 ||
