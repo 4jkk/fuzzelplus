@@ -432,6 +432,24 @@ render_cursor(const struct render *render, int x, int baseline, pixman_image_t *
     }
 }
 
+/* selection area for a single line */
+typedef struct {
+    int x;
+    int width;
+    int height;
+} selection_area_t;
+
+static selection_area_t
+calculate_selection_area(const struct render *render, int total_width, int stats_width) {
+    const int sel_margin = render->x_margin / 3;
+
+    return (selection_area_t) {
+        .x = render->border_size + render->x_margin - sel_margin,
+        .width = total_width - 2 * (render->border_size + render->x_margin - sel_margin) - stats_width,
+        .height = render->row_height
+    };
+}
+
 static void
 adjust_input_scroll_offset(struct render *render, int cursor_pos, int total_width, int available_width)
 {
@@ -487,15 +505,20 @@ render_prompt(struct render *render, struct buffer *buf,
         ? render_match_count(render, buf, prompt, matches)
         : 0;
 
-    /* Erase background */
+    /* Erase background using same dimensions as selection area for consistency */
     pixman_color_t bg = render->pix_background_color;
+    // red background for debugging
+    // pixman_color_t bg = (pixman_color_t){0xffff, 0x0, 0x0, 0xffff};
+
+    selection_area_t clear_area = calculate_selection_area(render, buf->width, stats_width);
+
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, buf->pix[0], &bg, 1,
         &(pixman_rectangle16_t){
-            render->border_size + render->x_margin,
+            clear_area.x,
             render->border_size + render->y_margin,
-            buf->width - 2 * (render->border_size + render->x_margin) - stats_width,
-            render->row_height});
+            clear_area.width,
+            clear_area.height});
 
     const int max_x =
         buf->width - render->border_size - render->x_margin - stats_width;
@@ -594,7 +617,7 @@ render_prompt(struct render *render, struct buffer *buf,
             const struct fcft_glyph *glyph = input_run->glyphs[i];
 
             /* Skip glyphs that are completely to the left of visible area */
-            if (current_width + glyph->advance.x <= render->input_glyph_offset) {
+            if (current_width + glyph->width <= render->input_glyph_offset) {
                 current_width += glyph->advance.x;
                 continue;
             }
@@ -1301,15 +1324,12 @@ render_match_entry_background(const struct render *render,
 {
     pixman_color_t bg = render->pix_background_color;
 
-    const int sel_margin = render->x_margin / 3;
-
-    const int x = render->border_size + render->x_margin - sel_margin;
+    selection_area_t area = calculate_selection_area(render, width, 0);
     const int y = first_row_y(render) + idx * render->row_height;
-    const int w = width - 2 * (render->border_size + render->x_margin - sel_margin);
     const int h = row_count * render->row_height;
 
     pixman_image_fill_rectangles(
-        PIXMAN_OP_SRC, pix, &bg, 1, &(pixman_rectangle16_t){x, y, w, h});
+        PIXMAN_OP_SRC, pix, &bg, 1, &(pixman_rectangle16_t){area.x, y, area.width, h});
 }
 
 static void
@@ -1318,15 +1338,11 @@ render_selected_match_entry_background(const struct render *render,
 {
     pixman_color_t bg = render->pix_selection_color;
 
-    const int sel_margin = render->x_margin / 3;
-
-    const int x = render->border_size + render->x_margin - sel_margin;
+    selection_area_t area = calculate_selection_area(render, width, 0);
     const int y = first_row_y(render) + idx * render->row_height;
-    const int w = width - 2 * (render->border_size + render->x_margin - sel_margin);
-    const int h = 1 * render->row_height;
 
     pixman_image_fill_rectangles(
-        PIXMAN_OP_OVER, pix, &bg, 1, &(pixman_rectangle16_t){x, y, w, h});
+        PIXMAN_OP_OVER, pix, &bg, 1, &(pixman_rectangle16_t){area.x, y, area.width, area.height});
 }
 
 static void

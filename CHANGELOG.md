@@ -44,6 +44,7 @@
 * `scaling-filter` option (and the corresponding `--scaling-filter`
   command line option). This option defines which scaling filter
   fuzzel uses when down scaling PNGs ([#553][553]).
+* Long input now scrolls ([#378][378])
 * `--minimal-lines` command line and config option, causing fuzzel to
   adjust the number of displayed lines to the minimum of `--lines` and
   the number of input lines ([#144][144])
@@ -53,6 +54,7 @@
   application command instead of appending the command at the end. Useful
   for setting the title or app_id. ([#600][600])
 
+[378]: https://codeberg.org/dnkl/fuzzel/pulls/378
 [504]: https://codeberg.org/dnkl/fuzzel/pulls/504
 [512]: https://codeberg.org/dnkl/fuzzel/pulls/512
 [546]: https://codeberg.org/dnkl/fuzzel/issues/546
