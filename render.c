@@ -453,11 +453,17 @@ calculate_selection_area(const struct render *render, int total_width, int stats
 static void
 adjust_input_scroll_offset(struct render *render, int cursor_pos, int total_width, int available_width)
 {
+    /* Account for cursor width when determining scroll offset */
+    int cursor_width = render->font->underline.thickness;
+
     /* Adjust glyph offset based on cursor position */
     if (cursor_pos < render->input_glyph_offset) {
+        /* Cursor is to the left of visible area - scroll left */
         render->input_glyph_offset = cursor_pos;
-    } else if (cursor_pos > render->input_glyph_offset + available_width) {
-        render->input_glyph_offset = cursor_pos - available_width;
+    } else if (cursor_pos + cursor_width > render->input_glyph_offset + available_width) {
+        /* Cursor (including its width) extends beyond right edge - scroll right */
+        /* Scroll so that cursor + cursor_width fits within available_width */
+        render->input_glyph_offset = (cursor_pos + cursor_width) - available_width;
     }
 
     /* Adjust offset if there's free space available */
@@ -520,8 +526,10 @@ render_prompt(struct render *render, struct buffer *buf,
             clear_area.width,
             clear_area.height});
 
+    /* Reserve space for cursor at the right edge */
+    int cursor_width = render->font->underline.thickness;
     const int max_x =
-        buf->width - render->border_size - render->x_margin - stats_width;
+        buf->width - render->border_size - render->x_margin - stats_width - cursor_width;
 
     struct fcft_text_run *prompt_run = render->prompt_text_run;
     struct fcft_text_run *input_run =
@@ -652,7 +660,8 @@ render_prompt(struct render *render, struct buffer *buf,
                 cursor_location <= next_cluster)
             {
                 int cursor_x = render_x + current_width;
-                if (cursor_x >= x && cursor_x < max_x) {
+                int cursor_width = render->font->underline.thickness;
+                if (cursor_x >= x && cursor_x + cursor_width <= max_x) {
                     render_cursor(render, cursor_x, y, buf->pix[0]);
                 }
             }
@@ -661,7 +670,8 @@ render_prompt(struct render *render, struct buffer *buf,
         /* Handle cursor at end of text */
         if (cursor_location >= text_len) {
             int cursor_x = render_x + total_width;
-            if (cursor_x >= x && cursor_x < max_x) {
+            int cursor_width = render->font->underline.thickness;
+            if (cursor_x >= x && cursor_x + cursor_width <= max_x) {
                 render_cursor(render, cursor_x, y, buf->pix[0]);
             }
         }
@@ -750,7 +760,8 @@ render_prompt(struct render *render, struct buffer *buf,
             !(conf->password_mode.enabled && conf->password_mode.character == U'\0'))
         {
             int cursor_x = render_x + cursor_pos;
-            if (cursor_x >= x && cursor_x < max_x) {
+            int cursor_width = render->font->underline.thickness;
+            if (cursor_x >= x && cursor_x + cursor_width <= max_x) {
                 render_cursor(render, cursor_x, y, buf->pix[0]);
             }
         }
