@@ -1846,13 +1846,14 @@ main(int argc, char *const *argv)
     int ret = EXIT_FAILURE;
 
     if (select != NULL && select_idx) {
-            LOG_ERRNO("--select and --select-index cannot be used at the same time");
-            return ret;
+        LOG_ERRNO("--select and --select-index cannot be used at the same time");
+        return ret;
     }
 
     if (cmdline_overrides.prompt_only_set && cmdline_overrides.conf.hide_prompt) {
-            LOG_ERRNO("--prompt-only and --hide-prompt cannot be used at the same time");
-            return ret;
+        LOG_ERRNO("--prompt-only and --hide-prompt cannot be used at the same time");
+        config_free(&cmdline_overrides.conf);
+        return ret;
     }
 
     struct config conf = {0};
