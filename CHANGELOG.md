@@ -72,12 +72,13 @@
 * Scrolling speed is now line-by-line instead of page-by-page ([#586][586])
 * Number of render workers is now automatically limited to the number
   of displayed entries.
+* librsvg >= 2.46.0 is required if librsvg is used.
 * wayland-protocols >= 1.41 is now required.
 * pixman >= 0.46.0 is now required.
 * fcft >= 3.3.1 is now required.
 * In application mode (not dmenu), fuzzel now ignores icon theme
   directories whose `Context` field is not `Application` or
-  `Apps`. This is for performance reasons ([#553][553])
+  `Apps`, or `Legacy`. This is for performance reasons ([#553][553])
 * Default down scaling filter changed from `lanczos3` to `box`
   ([#553][553]).
 * Use the width of 'o' instead of 'W' when calculating the window
@@ -111,6 +112,7 @@
 * Missing shell completions for `--prompt-only`.
 * Empty window being displayed despite `--no-run-if-empty` being used.
 * Fix border width and scaling for mixed-DPI environments ([#595][595])
+* Symbolic icons now render in the same color as the text, per XDG spec.
 
 [507]: https://codeberg.org/dnkl/fuzzel/issues/507
 [551]: https://codeberg.org/dnkl/fuzzel/issues/551

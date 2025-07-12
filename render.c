@@ -865,12 +865,32 @@ render_match_text(pixman_image_t *pix, double *_x, double _y, double max_x,
 #if defined(FUZZEL_ENABLE_SVG_LIBRSVG)
 static void
 render_svg_librsvg(const struct icon *icon, int x, int y, int size,
-                   cairo_t *cairo)
+                   cairo_t *cairo, const pixman_color_t *override_color)
 {
     RsvgHandle *svg = icon->svg;
 
     cairo_save(cairo);
     cairo_set_operator(cairo, CAIRO_OPERATOR_ATOP);
+
+    /* Apply CSS for symbolic icons if override_color is provided */
+    if (override_color != NULL) {
+        gchar css[256];
+        /* Convert pixman 16-bit color values (0-65535) to 8-bit RGB values (0-255)
+         * by dividing by 256 (equivalent to shifting right by 8 bits) */
+        int red = override_color->red / 256;
+        int green = override_color->green / 256;
+        int blue = override_color->blue / 256;
+
+        g_snprintf(css, sizeof(css), "* { fill: rgb(%d,%d,%d); }", red, green, blue);
+
+        GError *error = NULL;
+        if (!rsvg_handle_set_stylesheet(svg, (const guint8*)css, strlen(css), &error)) {
+            if (error != NULL) {
+                LOG_WARN("Failed to set CSS stylesheet: %s", error->message);
+                g_error_free(error);
+            }
+        }
+    }
 
  #if LIBRSVG_CHECK_VERSION(2, 46, 0)
     if (cairo_status(cairo) == CAIRO_STATUS_SUCCESS) {
@@ -914,7 +934,8 @@ render_svg_librsvg(const struct icon *icon, int x, int y, int size,
 #if defined(FUZZEL_ENABLE_SVG_NANOSVG)
 static void
 render_svg_nanosvg(struct icon *icon, int x, int y, int size,
-                   pixman_image_t *pix, cairo_t *cairo, bool gamma_correct)
+                   pixman_image_t *pix, cairo_t *cairo, bool gamma_correct,
+                   const pixman_color_t *override_color)
 {
 #if defined(FUZZEL_ENABLE_CAIRO)
     cairo_surface_flush(cairo_get_target(cairo));
@@ -982,6 +1003,15 @@ render_svg_nanosvg(struct icon *icon, int x, int y, int size,
              * a 16-bit buffer before looping the pixels.
              */
 
+            /* Apply color override if specified and pixel has content */
+            if (override_color != NULL && alpha > 0) {
+                /* Convert pixman 16-bit color values (0-65535) to 8-bit RGB values (0-255)
+                 * by shifting right by 8 bits (dividing by 256) */
+                red = (override_color->red >> 8) & 0xff;
+                green = (override_color->green >> 8) & 0xff;
+                blue = (override_color->blue >> 8) & 0xff;
+            }
+
             if (gamma_correct) {
                 if (alpha == 0x00)
                     blue = green = red = 0x00;
@@ -1041,7 +1071,7 @@ render_svg_nanosvg(struct icon *icon, int x, int y, int size,
 static void
 render_svg(struct icon *icon, int x, int y, int size,
            pixman_image_t *pix, cairo_t *cairo, bool gamma_correct,
-           bool print_timing_info)
+           bool print_timing_info, const pixman_color_t *override_color)
 {
     assert(icon->type == ICON_SVG);
 
@@ -1069,9 +1099,9 @@ render_svg(struct icon *icon, int x, int y, int size,
     gettimeofday(&start, NULL);
 
 #if defined(FUZZEL_ENABLE_SVG_LIBRSVG)
-    render_svg_librsvg(icon, x, y, size, cairo);
+    render_svg_librsvg(icon, x, y, size, cairo, override_color);
 #elif defined(FUZZEL_ENABLE_SVG_NANOSVG)
-    render_svg_nanosvg(icon, x, y, size, pix, cairo, gamma_correct);
+    render_svg_nanosvg(icon, x, y, size, pix, cairo, gamma_correct, override_color);
 #endif
 
     if (print_timing_info) {
@@ -1377,8 +1407,11 @@ render_one_match_entry(const struct render *render, const struct matches *matche
             match->application->icon.type == ICON_SVG &&
             img_y > list_end + render->row_height)
         {
+            // For large symbolic icons, use selection text color
+            const pixman_color_t *color = icon_is_symbolic(match->application->icon.name)
+                ? &render->pix_selection_text_color : NULL;
             render_svg(&match->application->icon, img_x, img_y, size, pix, cairo,
-                       render->gamma_correct, render->conf->print_timing_info);
+                       render->gamma_correct, render->conf->print_timing_info, color);
         }
     }
 
@@ -1399,8 +1432,12 @@ render_one_match_entry(const struct render *render, const struct matches *matche
             break;
 
         case ICON_SVG:
+            // For small symbolic icons, use appropriate text color
+            const pixman_color_t *color = icon_is_symbolic(icon->name)
+                ? (is_selected ? &render->pix_selection_text_color : &render->pix_text_color)
+                : NULL;
             render_svg(icon, img_x, img_y, size, pix, cairo,
-                       render->gamma_correct, render->conf->print_timing_info);
+                       render->gamma_correct, render->conf->print_timing_info, color);
             break;
         }
     }

@@ -834,12 +834,28 @@ lookup_icons(const icon_theme_list_t *themes, int icon_size,
 }
 
 bool
-icon_lookup_application_icons(icon_theme_list_t themes, int icon_size,
-                              struct application_list *applications)
+icon_is_symbolic(const char *icon_name)
 {
-    xdg_data_dirs_t xdg_dirs = get_icon_dirs();
-    lookup_icons(&themes, icon_size, applications, &xdg_dirs);
-    xdg_data_dirs_destroy(xdg_dirs);
+    if (icon_name == NULL)
+        return false;
 
-    return true;
+    const char *suffix = "-symbolic";
+    size_t icon_len = strlen(icon_name);
+    size_t suffix_len = strlen(suffix);
+
+    if (icon_len < suffix_len)
+        return false;
+
+    return strcmp(icon_name + icon_len - suffix_len, suffix) == 0;
+}
+
+bool
+icon_lookup_application_icons(
+    icon_theme_list_t themes, int icon_size,
+    struct application_list *applications)
+{
+    xdg_data_dirs_t dirs = get_icon_dirs();
+    bool ret = lookup_icons(&themes, icon_size, applications, &dirs);
+    xdg_data_dirs_destroy(dirs);
+    return ret;
 }

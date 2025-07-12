@@ -36,4 +36,5 @@ bool icon_lookup_application_icons(
     struct application_list *applications);
 
 bool icon_from_png(struct icon *icon, const char *name, bool gamma_correct);
-bool icon_from_svg(struct icon *icon, const char *name);
+bool icon_from_svg(struct icon *icon, const char *path);
+bool icon_is_symbolic(const char *icon_name);
