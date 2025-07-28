@@ -137,6 +137,13 @@ For more detailed configuration information, see the man pages:
 man fuzzel
 man fuzzel.ini
 ```
+
+## Paths
+Fuzzel lists `*.desktop` files in `XDG_DATA_HOME` and `XDG_DATA_DIRS` (defaulting to `~/.local/share` and `/usr/local/share+/usr/share`).
+
+Fuzzel does NOT list binaries in `PATH`
+
+
 ## Testing
 
 Fuzzel has some automated tests in `test/`. To run them, Fish shell and `wtype` are required.
