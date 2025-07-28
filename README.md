@@ -139,9 +139,14 @@ man fuzzel.ini
 ```
 
 ## Paths
-Fuzzel lists `*.desktop` files in `XDG_DATA_HOME` and `XDG_DATA_DIRS` (defaulting to `~/.local/share` and `/usr/local/share+/usr/share`).
+Fuzzel lists `*.desktop` files in the `applications` sub-directory of `XDG_DATA_HOME` and `XDG_DATA_DIRS`, (defaulting to `~/.local/share` and `/usr/local/share+/usr/share`).
 
-Fuzzel does NOT list binaries in `PATH`
+E.g. for the defaults listed above, the search directories would be:
+- `~/.local/share/applications`
+- `/usr/local/share/applications`
+- `/usr/share/applications`
+
+> Fuzzel does NOT list binaries in `PATH`
 
 
 ## Testing
