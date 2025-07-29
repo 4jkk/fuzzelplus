@@ -144,6 +144,7 @@ struct wayland {
     enum fcft_subpixel subpixel;
     bool font_is_sized_by_dpi;
     bool hide_when_prompt_empty;
+    bool enable_mouse;
 
     enum { KEEP_RUNNING, EXIT_UPDATE_CACHE, EXIT} status;
     int exit_code;
@@ -1102,6 +1103,7 @@ wl_pointer_enter(void *data, struct wl_pointer *wl_pointer,
                  wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
     struct seat *seat = data;
+    if (!seat->wayl->enable_mouse) return;
     seat->pointer.serial = serial;
 
     /*
@@ -1131,6 +1133,7 @@ wl_pointer_leave(void *data, struct wl_pointer *wl_pointer,
                  uint32_t serial, struct wl_surface *surface)
 {
     struct seat *seat = data;
+    if (!seat->wayl->enable_mouse) return;
     seat->pointer.serial = serial;
 }
 
@@ -1139,6 +1142,7 @@ wl_pointer_motion(void *data, struct wl_pointer *wl_pointer,
                   uint32_t time, wl_fixed_t surface_x, wl_fixed_t surface_y)
 {
     struct seat *seat = data;
+    if (!seat->wayl->enable_mouse) return;
 
     const int x = wl_fixed_to_int(surface_x);
     const int y = wl_fixed_to_int(surface_y);
@@ -1159,6 +1163,7 @@ wl_pointer_button(void *data, struct wl_pointer *wl_pointer,
 {
     struct seat *seat = data;
     struct wayland *wayl = seat->wayl;
+    if (!wayl->enable_mouse) return;
 
     if (state == WL_POINTER_BUTTON_STATE_RELEASED) {
         if (button == BTN_LEFT && seat->pointer.hovered_row_idx != -1) {
@@ -1189,6 +1194,7 @@ wl_pointer_axis(void *data, struct wl_pointer *wl_pointer,
 {
     struct seat *seat = data;
     struct wayland *wayl = seat->wayl;
+    if (!wayl->enable_mouse) return;
     bool refresh = false;
 
     if (value < 0) {
@@ -2697,6 +2703,7 @@ wayl_init(const struct config *conf, struct fdm *fdm,
         .prompt = prompt,
         .matches = matches,
         .hide_when_prompt_empty = conf->hide_when_prompt_empty,
+        .enable_mouse = conf->enable_mouse,
         .status = KEEP_RUNNING,
         .exit_code = !conf->dmenu.enabled ? EXIT_SUCCESS : EXIT_FAILURE,
         .font_reloaded = {
