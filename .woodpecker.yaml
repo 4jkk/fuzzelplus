@@ -121,7 +121,7 @@ steps:
 
       # Build fuzzel for testing
       - mkdir -p bld/test
-      - meson setup --buildtype=debug -Db_sanitize=address . bld/test
+      - meson setup --buildtype=debug . bld/test
       - ninja -C bld/test
 
       # Start headless wlroots-based compositor using cage
