@@ -8,6 +8,8 @@ project('fuzzel', 'c',
           'werror=true',
           'b_ndebug=if-release'])
 
+fs = import('fs')
+
 is_debug_build = get_option('buildtype').startswith('debug')
 cc = meson.get_compiler('c')
 
@@ -159,7 +161,7 @@ srgb_funcs = custom_target(
   command: [python, generate_srgb_funcs, '@OUTPUT0@', '@OUTPUT1@']
 )
 
-executable(
+fuzzel = executable(
   'fuzzel',
   'application.c', 'application.h',
   'char32.c', 'char32.h',
@@ -203,6 +205,28 @@ executable(
                  tllist,
                  fcft],
   install: true)
+
+fish = find_program('fish', required: false)
+if fish.found()
+  # Check if we can load the bundled fishtape
+  fishtape_path = meson.current_source_dir() / '3rd-party/fishtape/functions/fishtape.fish'
+  if run_command(fish, '-c', 'source @0@; fishtape -v'.format(fishtape_path), check: false).returncode() == 0
+    # Automatically discover all .fish test files
+    test_files = run_command('find', meson.current_source_dir() / 'test', '-name', '*.fish', '-type', 'f', check: true).stdout().strip().split('\n')
+    foreach test_file : test_files
+      test_name = fs.stem(fs.name(test_file))
+      test(test_name, fish,
+           args: ['-c',
+                  'source @0@; fishtape @1@'.format(fishtape_path, test_file)],
+           env: {'FUZZEL_TEST_BIN': fuzzel.full_path(),
+                 'MALLOC_PERTURB_': '0',
+                 'ASAN_OPTIONS': 'abort_on_error=1:halt_on_error=1:print_stacktrace=1',
+                 'UBSAN_OPTIONS': 'abort_on_error=1:halt_on_error=1:print_stacktrace=1',
+                 'MSAN_OPTIONS': 'abort_on_error=1:halt_on_error=1:print_stacktrace=1'},
+           is_parallel : false)
+    endforeach
+  endif
+endif
 
 install_data(
   'fuzzel.ini',

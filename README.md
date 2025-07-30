@@ -144,9 +144,19 @@ The test runner can be installed within Fish shell with:
 
     fisher install jorgebucaran/fishtape
 
-Once installed, the tests can be run with:
+Once installed, the tests can be run in two ways:
 
-    fishtape test/*.fish
+### Via Meson (recommended)
+
+    meson test -C build
+
+This automatically sets up the correct environment and runs all tests.
+
+### Directly with fishtape
+
+    FUZZEL_TEST_BIN=./build/fuzzel fishtape test/*.fish
+
+Note: When running tests directly with fishtape, you must set the `FUZZEL_TEST_BIN` environment variable to point to your fuzzel executable.
 
 ## License
 

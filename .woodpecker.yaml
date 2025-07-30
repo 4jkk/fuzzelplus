@@ -43,7 +43,7 @@ steps:
 
       # Debug (default: cairo, nanosvg(bundled), libpng)
       - mkdir -p bld/debug-x64
-      - meson setup --buildtype=debug . bld/debug-x64
+      - meson setup --buildtype=debug -Db_sanitize=address,leak . bld/debug-x64
       - ninja -C bld/debug-x64 -k0
       - bld/debug-x64/fuzzel --version
 
@@ -61,7 +61,7 @@ steps:
 
       # Debug (no cairo, no icons)
       - mkdir -p bld/no-cairo-no-icons
-      - meson setup --buildtype=debug -Denable-cairo=disabled -Dpng-backend=none -Dsvg-backend=none . bld/no-cairo-no-icons
+      - meson setup --buildtype=debug -Db_sanitize=address,leak -Denable-cairo=disabled -Dpng-backend=none -Dsvg-backend=none . bld/no-cairo-no-icons
       - ninja -C bld/no-cairo-no-icons -k0
       - bld/no-cairo-no-icons/fuzzel --version
 
@@ -99,6 +99,36 @@ steps:
 
       # Debug (cairo, librsvg, no png)
       - mkdir -p bld/cairo-librsvg-no-png
-      - meson setup --buildtype=debug -Denable-cairo=enabled -Dpng-backend=none -Dsvg-backend=librsvg . bld/cairo-librsvg-no-png
+      - meson setup --buildtype=debug -Db_sanitize=address,leak -Denable-cairo=enabled -Dpng-backend=none -Dsvg-backend=librsvg . bld/cairo-librsvg-no-png
       - ninja -C bld/cairo-librsvg-no-png -k0
       - bld/cairo-librsvg-no-png/fuzzel --version
+
+  - name: tests
+    when:
+      - event: [manual, pull_request]
+      - event: [push, tag]
+        branch: [master, releases/*]
+    depends_on: [subprojects]
+    image: alpine:edge
+    commands:
+      - apk update
+      - apk add musl-dev linux-headers meson ninja gcc scdoc
+      - apk add libxkbcommon-dev cairo-dev yaml-dev librsvg-dev
+      - apk add wayland-dev wayland-protocols wlroots-dev
+      - apk add wtype fish git coreutils
+      # Install cage (a simple wlroots-based Wayland compositor)
+      - apk add cage
+
+      # Build fuzzel for testing
+      - mkdir -p bld/test
+      - meson setup --buildtype=debug -Db_sanitize=address,leak . bld/test
+      - ninja -C bld/test
+
+      # Start headless wlroots-based compositor using cage
+      - export WLR_BACKENDS=headless
+      - export WLR_RENDERER=pixman  # Use software renderer for headless
+      - cage -- true &  # Start cage with a dummy command
+      - sleep 3
+
+      # Run all tests via meson (automatically discovers and runs all test files)
+      - timeout 60 meson test -C bld/test --verbose
