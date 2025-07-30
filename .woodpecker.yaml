@@ -125,6 +125,8 @@ steps:
       - ninja -C bld/test
 
       # Start headless wlroots-based compositor using cage
+      - mkdir -p /tmp/xdg-runtime
+      - export XDG_RUNTIME_DIR=/tmp/xdg-runtime
       - export WLR_BACKENDS=headless
       - export WLR_RENDERER=pixman  # Use software renderer for headless
       - cage -- true &  # Start cage with a dummy command
