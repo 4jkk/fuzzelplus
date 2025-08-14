@@ -66,7 +66,7 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 		- Courier New:size=12
 		- Fantasque Sans Mono:fontfeatures=ss01
 	
-	Default: _monospace_.
+	Default: _FiraSans:size=18,Sans:size=14_.
 
 *use-bold*
 	Boolean. When set, fuzzel may use bold fonts. For example, for the
@@ -141,7 +141,7 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 
 *prompt*
 	String to use as input prompt. Note that trailing spaces are
-	trimmed, unless the string is quoted. Default: _"> "_.
+	trimmed, unless the string is quoted. Default: _"▶    "_.
 
 *icon-theme*
 	Icon theme. Note that the name is case sensitive. Default:
@@ -281,7 +281,7 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	Note: this option has no effect when anchor=center, left or right.
 
 *lines*
-	Number of matches to show. Default: _15_.
+	Number of matches to show. Default: _10_.
 
 *hide-prompt*
 	Boolean. When set, hides the prompt line, making the window smaller.
@@ -322,7 +322,7 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	the large images. Default: _0.5_.
 
 *line-height*
-	Override line height from font metrics. Default: use font metrics.
+	Override line height from font metrics. Default: _27_.
 
 *letter-spacing*
 	Additional letter spacing. Negative values are allowed. Default:
@@ -430,44 +430,44 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 All color values are in RGBA.
 
 *background*
-	Background color. Default: _fdf6e3ff_.
+	Background color. Default: _2e3440ff_.
 
 *text*
 	Text (foreground) color of unselected entries. Default:
-	_657b83ff_.
+	_d8dee9ff_.
 
 *prompt*
 	Text (foreground) color of prompt character(s). Default:
-	_586e75ff_.
+	_d8dee9ff_.
 
 *placeholder*
 	Text (foreground) color of the placeholder string. Default:
-	_93a1a1ff_.
+	_4c566aff_.
 
 *input*
-	Text (foreground) color of input string. Default: _657b83ff_.
+	Text (foreground) color of input string. Default: _d8dee9ff_.
 
 *match*
 	Text (foreground) color of the matched substring. Default:
-	_cb4b16ff_.
+	_ebcb8bff_.
 
 *selection*
-	Background color of the selected entry. Default: _eee8d5ff_.
+	Background color of the selected entry. Default: _3b4252ff_.
 
 *selection-text*
 	Text (foreground) color of the selected entry. Default:
-	_586e75ff_.
+	_eceff4ff_.
 
 *selection-match*
 	Text (foreground) color of the matched substring of the
-	selected entry. Default: _cb4b16ff_.
+	selected entry. Default: _b48eadff_.
 
 *counter*=_HEX_
 	The color of the match count stats printed at the right-hand side
-	of the input prompt. See *COLORS*. Default: _93a1a1ff_.
+	of the input prompt. See *COLORS*. Default: _4c566aff_.
 
 *border*
-	Border color. Default: _002b36ff_.
+	Border color. Default: _4c566aff_.
 
 
 # SECTION: border
@@ -476,7 +476,7 @@ All color values are in RGBA.
 	Width of the border, in pixels. Default: _1_.
 
 *radius*
-	Amount of corner "roundness". Default: _10_.
+	Amount of corner "roundness". Default: _24_.
 
 *selection-radius*
 	Amount of corner "roundness" for the selected entry. Default: _0_.
