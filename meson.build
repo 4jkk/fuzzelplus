@@ -230,6 +230,12 @@ endif
 install_data(
   'fuzzel.ini',
   install_dir: join_paths(get_option('sysconfdir'), 'xdg', 'fuzzel'))
+
+# Install optional theme files
+install_data(
+  files('themes/nord.ini'),
+  install_dir: join_paths(get_option('sysconfdir'), 'xdg', 'fuzzel', 'themes'))
+
 install_data(
   'LICENSE', 'README.md', 'CHANGELOG.md',
   install_dir: join_paths(get_option('datadir'), 'doc', 'fuzzel'))
