@@ -72,8 +72,10 @@
 * `selection-radius` option and `--selection-radius` flag to set the border
   radius of the selected entry
 * `enable-mouse` option and `--no-mouse` flag to disable mouse input
-* Added new Nord theme at /etc/xdg/fuzzel/themes/nord.ini. Load it with
-  an `include=` directive from your fuzzel.ini. ([#561][561])
+* Added new Nord theme at `/usr/share/fuzzel/themes/nord.ini`. Load it
+  with an `include=` directive from your `fuzzel.ini`. Note that the
+  exact contents of the theme file may change in a future
+  release. ([#561][561])
 
 [411]: https://codeberg.org/dnkl/fuzzel/issues/411
 [504]: https://codeberg.org/dnkl/fuzzel/pulls/504
