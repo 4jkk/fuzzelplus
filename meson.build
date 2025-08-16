@@ -234,7 +234,7 @@ install_data(
 # Install optional theme files
 install_data(
   files('themes/nord.ini'),
-  install_dir: join_paths(get_option('sysconfdir'), 'xdg', 'fuzzel', 'themes'))
+  install_dir: join_paths(get_option('datadir'), 'fuzzel', 'themes'))
 
 install_data(
   'LICENSE', 'README.md', 'CHANGELOG.md',
