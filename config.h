@@ -140,6 +140,7 @@ struct config {
 
     bool icons_enabled;
     char *icon_theme;
+    int icon_hue;  /* -1 = disabled, 0-360 = hue value */
 
     bool hide_when_prompt_empty;
     bool hide_prompt;

@@ -800,6 +800,29 @@ parse_section_main(struct context *ctx)
     else if (strcmp(key, "icon-theme") == 0)
         return value_to_str(ctx, &conf->icon_theme);
 
+    else if (strcmp(key, "icon-hue") == 0) {
+        if (strcmp(value, "none") == 0) {
+            conf->icon_hue = -1;
+        } else {
+            /* Try to parse as a signed integer first to allow -1 */
+            char *endptr;
+            long hue = strtol(value, &endptr, 10);
+            if (*endptr == '\0' && hue == -1) {
+                /* Accept -1 for grayscale */
+                conf->icon_hue = -1;
+            } else {
+                /* Otherwise must be 0-360 */
+                uint32_t unsigned_hue;
+                if (!value_to_uint32(ctx, 10, &unsigned_hue) || unsigned_hue > 360) {
+                    LOG_CONTEXTUAL_ERR("icon-hue must be 'none', -1 (for grayscale), or 0-360");
+                    return false;
+                }
+                conf->icon_hue = (int)unsigned_hue;
+            }
+        }
+        return true;
+    }
+
     else if (strcmp(key, "icons-enabled") == 0)
         return value_to_bool(ctx, &conf->icons_enabled);
 
@@ -1644,6 +1667,7 @@ config_load(struct config *conf, const char *conf_path,
         .filter_desktop = false,
         .icons_enabled = true,
         .icon_theme = xstrdup("default"),
+        .icon_hue = -1,  /* disabled by default */
         .hide_when_prompt_empty = false,
         .actions_enabled = false,
         .match_mode = MATCH_MODE_FZF,

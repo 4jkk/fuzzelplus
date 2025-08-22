@@ -161,6 +161,16 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 *-I*,*--no-icons*
 	Do not render any icons.
 
+*--icon-hue*=_DEGREES_|_none_
+	Apply a color transformation to all icons. Valid values are:
+	- *0-360*: Tint all icons to the specified hue (degrees on the color
+	  wheel). This creates a monochromatic effect where all icons share
+	  the same base color. You can use an HSL color picker with saturation
+	  set to 80, and lightness set to 70.
+	- *-1* or *none*: Convert all icons to grayscale.
+
+	Default: _not set_ (icons use their original colors).
+
 *--hide-before-typing*
 	Hide application list until something is typed.
 
