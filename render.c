@@ -1058,9 +1058,69 @@ render_svg_nanosvg(struct icon *icon, int x, int y, int size,
 #endif /* FUZZEL_ENABLE_SVG_NANOSVG */
 
 #if defined(FUZZEL_ENABLE_SVG_RESVG)
+/* Convert hue (0-360) to RGB, with fixed saturation and lightness for optimal icon colors */
+static void
+hue_to_rgb(int hue, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+    /* Use high saturation (80%) and good lightness (70%) for vibrant but visible colors */
+    const float saturation = 0.80f;
+    const float lightness = 0.70f;
+
+    float h = hue / 360.0f;
+    float c = (1 - fabsf(2 * lightness - 1)) * saturation;
+    float x = c * (1 - fabsf(fmodf(h * 6, 2) - 1));
+    float m = lightness - c / 2;
+
+    float rf, gf, bf;
+    int h_i = (int)(h * 6);
+
+    switch (h_i) {
+        case 0: rf = c; gf = x; bf = 0; break;
+        case 1: rf = x; gf = c; bf = 0; break;
+        case 2: rf = 0; gf = c; bf = x; break;
+        case 3: rf = 0; gf = x; bf = c; break;
+        case 4: rf = x; gf = 0; bf = c; break;
+        default: rf = c; gf = 0; bf = x; break;
+    }
+
+    *r = (uint8_t)((rf + m) * 255);
+    *g = (uint8_t)((gf + m) * 255);
+    *b = (uint8_t)((bf + m) * 255);
+}
+
+/* Convert RGB to monochromatic based on luminance */
+static inline void
+apply_monochrome_transform(uint16_t *r, uint16_t *g, uint16_t *b,
+                           uint8_t target_r, uint8_t target_g, uint8_t target_b,
+                           bool is_grayscale)
+{
+    /* Calculate luminance */
+    float luminance = (0.2126f * (*r) + 0.7152f * (*g) + 0.0722f * (*b)) / 255.0f;
+
+    /* For pure black or very dark colors, use a minimum luminance to ensure visibility */
+    if (luminance < 0.1f && (*r < 26 && *g < 26 && *b < 26)) {
+        /* Use a medium luminance for black icons to make them clearly visible */
+        luminance = 0.7f;
+    }
+
+    if (is_grayscale) {
+        /* For grayscale, set all channels to the luminance value */
+        uint16_t gray = (uint16_t)(luminance * 255.0f);
+        *r = gray;
+        *g = gray;
+        *b = gray;
+    } else {
+        /* Apply to target color for monochrome tinting */
+        *r = (uint16_t)(target_r * luminance);
+        *g = (uint16_t)(target_g * luminance);
+        *b = (uint16_t)(target_b * luminance);
+    }
+}
+
 static void
 render_svg_resvg(struct icon *icon, int x, int y, int size,
-                 pixman_image_t *pix, cairo_t *cairo, bool gamma_correct)
+                 pixman_image_t *pix, cairo_t *cairo, bool gamma_correct,
+                 const struct render *render)
 {
 #if defined(FUZZEL_ENABLE_CAIRO)
     cairo_surface_flush(cairo_get_target(cairo));
@@ -1097,6 +1157,23 @@ render_svg_resvg(struct icon *icon, int x, int y, int size,
         transform.d = scale;
         resvg_render(tree, transform, width, height, (char *)data_8bit);
 
+        /* Icon color transformation based on icon-hue configuration */
+        const struct config *conf = render->conf;
+        int color_mode = 0;  /* 0=normal, 1=grayscale, 2=monochrome */
+        uint8_t mono_r = 0, mono_g = 0, mono_b = 0;
+        bool is_grayscale = false;
+
+        if (conf->icon_hue == -1) {
+            color_mode = 1;  /* Enable grayscale transformation */
+            is_grayscale = true;
+            LOG_DBG("Applying grayscale transformation");
+        } else if (conf->icon_hue >= 0) {
+            color_mode = 2;  /* Enable monochrome transformation */
+            hue_to_rgb(conf->icon_hue, &mono_r, &mono_g, &mono_b);
+            LOG_DBG("Applying icon hue %d -> RGB(%d,%d,%d)",
+                    conf->icon_hue, mono_r, mono_g, mono_b);
+        }
+
         if (gamma_correct) {
             /* For gamma-correct blending, create 16-bit buffer and image */
             uint8_t *data_16bit = xmalloc(width * height * 8);
@@ -1111,6 +1188,22 @@ render_svg_resvg(struct icon *icon, int x, int y, int size,
                 uint16_t green = (*rgba >> 8) & 0xff;
                 uint16_t blue = (*rgba >> 16) & 0xff;
                 uint16_t alpha = (*rgba >> 24) & 0xff;
+
+                /* Apply color transformation if enabled */
+                if (color_mode > 0 && alpha > 0) {
+                    /* Un-premultiply first */
+                    uint16_t orig_red = (red * 0xff) / alpha;
+                    uint16_t orig_green = (green * 0xff) / alpha;
+                    uint16_t orig_blue = (blue * 0xff) / alpha;
+
+                    apply_monochrome_transform(&orig_red, &orig_green, &orig_blue,
+                                              mono_r, mono_g, mono_b, is_grayscale);
+
+                    /* Re-premultiply */
+                    red = (orig_red * alpha) / 0xff;
+                    green = (orig_green * alpha) / 0xff;
+                    blue = (orig_blue * alpha) / 0xff;
+                }
 
                 /* Decode sRGB to linear for gamma-correct blending */
                 if (alpha == 0x00) {
@@ -1171,7 +1264,7 @@ render_svg_resvg(struct icon *icon, int x, int y, int size,
 static void
 render_svg(struct icon *icon, int x, int y, int size,
            pixman_image_t *pix, cairo_t *cairo, bool gamma_correct,
-           bool print_timing_info)
+           bool print_timing_info, const struct render *render)
 {
     assert(icon->type == ICON_SVG);
 
@@ -1203,7 +1296,7 @@ render_svg(struct icon *icon, int x, int y, int size,
 #elif defined(FUZZEL_ENABLE_SVG_NANOSVG)
     render_svg_nanosvg(icon, x, y, size, pix, cairo, gamma_correct);
 #elif defined(FUZZEL_ENABLE_SVG_RESVG)
-    render_svg_resvg(icon, x, y, size, pix, cairo, gamma_correct);
+    render_svg_resvg(icon, x, y, size, pix, cairo, gamma_correct, render);
 #endif
 
     if (print_timing_info) {
@@ -1218,10 +1311,102 @@ render_svg(struct icon *icon, int x, int y, int size,
 }
 
 #if defined(FUZZEL_ENABLE_PNG_LIBPNG)
+/* Apply monochrome transformation to PNG pixman image */
+static pixman_image_t *
+apply_png_color_transform(pixman_image_t *src,
+                          uint8_t mono_r, uint8_t mono_g, uint8_t mono_b,
+                          bool is_grayscale)
+{
+    /* If RGB values are 0,0,0 and not grayscale, then no transformation */
+    if (mono_r == 0 && mono_g == 0 && mono_b == 0 && !is_grayscale)
+        return src;
+
+    pixman_format_code_t fmt = pixman_image_get_format(src);
+    int width = pixman_image_get_width(src);
+    int height = pixman_image_get_height(src);
+    int stride = pixman_image_get_stride(src);
+
+    /* Only process ARGB32 format for now */
+    if (fmt != PIXMAN_a8r8g8b8 && fmt != PIXMAN_a8b8g8r8)
+        return src;
+
+    /* Create a copy of the image data */
+    uint8_t *src_data = (uint8_t *)pixman_image_get_data(src);
+    uint8_t *new_data = xmalloc(height * stride);
+    memcpy(new_data, src_data, height * stride);
+
+    /* Process pixels */
+    for (int row = 0; row < height; row++) {
+        uint32_t *pixels = (uint32_t *)(new_data + row * stride);
+        for (int col = 0; col < width; col++) {
+            uint32_t pixel = pixels[col];
+
+            uint8_t alpha, red, green, blue;
+            if (fmt == PIXMAN_a8r8g8b8) {
+                alpha = (pixel >> 24) & 0xff;
+                red = (pixel >> 16) & 0xff;
+                green = (pixel >> 8) & 0xff;
+                blue = (pixel >> 0) & 0xff;
+            } else {  /* PIXMAN_a8b8g8r8 */
+                alpha = (pixel >> 24) & 0xff;
+                blue = (pixel >> 16) & 0xff;
+                green = (pixel >> 8) & 0xff;
+                red = (pixel >> 0) & 0xff;
+            }
+
+            if (alpha > 0) {
+                /* Un-premultiply */
+                red = (red * 0xff) / alpha;
+                green = (green * 0xff) / alpha;
+                blue = (blue * 0xff) / alpha;
+
+                /* Apply monochrome or grayscale transformation */
+                float luminance = (0.2126f * red + 0.7152f * green + 0.0722f * blue) / 255.0f;
+
+                /* Handle pure black/very dark colors */
+                if (luminance < 0.1f && (red < 26 && green < 26 && blue < 26)) {
+                    luminance = 0.7f;
+                }
+
+                if (is_grayscale) {
+                    /* For grayscale, set all channels to the luminance value */
+                    uint8_t gray = (uint8_t)(luminance * 255.0f);
+                    red = gray;
+                    green = gray;
+                    blue = gray;
+                } else {
+                    /* Apply monochrome tinting */
+                    red = (uint8_t)(mono_r * luminance);
+                    green = (uint8_t)(mono_g * luminance);
+                    blue = (uint8_t)(mono_b * luminance);
+                }
+
+                /* Re-premultiply */
+                red = (red * alpha) / 0xff;
+                green = (green * alpha) / 0xff;
+                blue = (blue * alpha) / 0xff;
+            }
+
+            /* Reassemble pixel */
+            if (fmt == PIXMAN_a8r8g8b8) {
+                pixels[col] = (alpha << 24) | (red << 16) | (green << 8) | blue;
+            } else {  /* PIXMAN_a8b8g8r8 */
+                pixels[col] = (alpha << 24) | (blue << 16) | (green << 8) | red;
+            }
+        }
+    }
+
+    /* Create new pixman image with transformed data */
+    pixman_image_t *transformed = pixman_image_create_bits_no_clear(
+        fmt, width, height, (uint32_t *)new_data, stride);
+
+    return transformed;
+}
+
 static void
 render_png_libpng(struct icon *icon, int x, int y, int size,
                   pixman_image_t *pix, cairo_t *cairo,
-                  enum scaling_filter scaling_filter)
+                  enum scaling_filter scaling_filter, const struct render *render)
 {
 #if defined(FUZZEL_ENABLE_CAIRO)
     cairo_surface_flush(cairo_get_target(cairo));
@@ -1367,11 +1552,35 @@ render_png_libpng(struct icon *icon, int x, int y, int size,
         icon->png = png;
     }
 
+    /* Apply icon color transformation based on config */
+    const struct config *conf = render->conf;
+    uint8_t mono_r = 0, mono_g = 0, mono_b = 0;
+    bool is_grayscale = false;
+
+    if (conf->icon_hue == -1) {
+        /* Grayscale mode */
+        is_grayscale = true;
+    } else if (conf->icon_hue >= 0) {
+        /* Monochrome tinting mode */
+        hue_to_rgb(conf->icon_hue, &mono_r, &mono_g, &mono_b);
+    }
+
+    pixman_image_t *transformed_png = apply_png_color_transform(
+        png, mono_r, mono_g, mono_b, is_grayscale);
+
+    bool needs_cleanup = (transformed_png != png);
+
     pixman_image_composite32(
-        PIXMAN_OP_OVER, png, NULL, pix, 0, 0, 0, 0,
+        PIXMAN_OP_OVER, transformed_png, NULL, pix, 0, 0, 0, 0,
         x + (size - width) / 2,
         y + (size - height) / 2,
         width, height);
+
+    /* Clean up temporary transformed image if we created one */
+    if (needs_cleanup) {
+        free(pixman_image_get_data(transformed_png));
+        pixman_image_unref(transformed_png);
+    }
 
 #if defined(FUZZEL_ENABLE_CAIRO)
     cairo_surface_mark_dirty(cairo_get_target(cairo));
@@ -1382,7 +1591,7 @@ render_png_libpng(struct icon *icon, int x, int y, int size,
 static void
 render_png(struct icon *icon, int x, int y, int size, pixman_image_t *pix,
            cairo_t *cairo, bool gamma_correct, bool print_timing_info,
-           enum scaling_filter scaling_filter)
+           enum scaling_filter scaling_filter, const struct render *render)
 {
     assert(icon->type == ICON_PNG);
 
@@ -1409,7 +1618,7 @@ render_png(struct icon *icon, int x, int y, int size, pixman_image_t *pix,
     gettimeofday(&start, NULL);
 
 #if defined(FUZZEL_ENABLE_PNG_LIBPNG)
-    render_png_libpng(icon, x, y, size, pix, cairo, scaling_filter);
+    render_png_libpng(icon, x, y, size, pix, cairo, scaling_filter, render);
 #endif
 
     if (print_timing_info) {
@@ -1521,7 +1730,7 @@ render_one_match_entry(struct render *render, const struct matches *matches,
             img_y > list_end + render->row_height)
         {
             render_svg(&match->application->icon, img_x, img_y, size, pix, cairo,
-                       render->gamma_correct, render->conf->print_timing_info);
+                       render->gamma_correct, render->conf->print_timing_info, render);
         }
     }
 
@@ -1538,12 +1747,12 @@ render_one_match_entry(struct render *render, const struct matches *matches,
         case ICON_PNG:
             render_png(icon, img_x, img_y, size, pix, cairo,
                        render->gamma_correct, render->conf->print_timing_info,
-                       render->conf->png_scaling_filter);
+                       render->conf->png_scaling_filter, render);
             break;
 
         case ICON_SVG:
             render_svg(icon, img_x, img_y, size, pix, cairo,
-                       render->gamma_correct, render->conf->print_timing_info);
+                       render->gamma_correct, render->conf->print_timing_info, render);
             break;
         }
     }
