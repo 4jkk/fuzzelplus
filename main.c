@@ -857,6 +857,7 @@ main(int argc, char *const *argv)
     #define OPT_SELECTION_RADIUS             306
     #define OPT_NO_MOUSE                     307
     #define OPT_DMENU_NTH_DELIM              308
+    #define OPT_ICON_HUE                     309
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -869,6 +870,7 @@ main(int argc, char *const *argv)
         {"dpi-aware",            required_argument, 0, 'D'},
         {"gamma-correct",        no_argument,       0, OPT_GAMMA_CORRECT},
         {"icon-theme",           required_argument, 0, OPT_ICON_THEME},
+        {"icon-hue",             required_argument, 0, OPT_ICON_HUE},
         {"no-icons",             no_argument,       0, 'I'},
         {"hide-before-typing", no_argument,     0, OPT_HIDE_WHEN_PROMPT_EMPTY},
         {"fields",               required_argument, 0, 'F'},
@@ -1017,6 +1019,7 @@ main(int argc, char *const *argv)
         bool print_timing_info_set:1;
         bool scaling_filter_set:1;
         bool no_mouse_set:1;
+        bool icon_hue_set:1;
     } cmdline_overrides = {{0}};
 
     setlocale(LC_CTYPE, "");
@@ -1099,6 +1102,21 @@ main(int argc, char *const *argv)
 
         case OPT_ICON_THEME:
             cmdline_overrides.conf.icon_theme = optarg;
+            break;
+
+        case OPT_ICON_HUE:
+            if (strcmp(optarg, "none") == 0) {
+                cmdline_overrides.conf.icon_hue = -1;
+            } else {
+                char *endptr;
+                long hue = strtol(optarg, &endptr, 10);
+                if (*endptr != '\0' || hue < -1 || hue > 360) {
+                    fprintf(stderr, "%s: icon-hue must be 'none', -1 (for grayscale), or 0-360\n", optarg);
+                    return EXIT_FAILURE;
+                }
+                cmdline_overrides.conf.icon_hue = (int)hue;
+            }
+            cmdline_overrides.icon_hue_set = true;
             break;
 
         case 'I':
@@ -2103,6 +2121,8 @@ main(int argc, char *const *argv)
         conf.auto_select = cmdline_overrides.conf.auto_select;
     if (cmdline_overrides.no_mouse_set)
         conf.enable_mouse = cmdline_overrides.conf.enable_mouse;
+    if (cmdline_overrides.icon_hue_set)
+        conf.icon_hue = cmdline_overrides.conf.icon_hue;
 
     if (conf.dmenu.enabled) {
         /* We don't have any meta data in dmenu mode */

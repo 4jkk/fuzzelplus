@@ -151,6 +151,16 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	Boolean. When enabled, application icons (from the selected
 	*icon-theme*) will be rendered. Default: _yes_.
 
+*icon-hue*
+	Integer value or *none*. Valid values are:
+	- *0-360*: Tint all icons to the specified hue (degrees on the color
+	  wheel). This creates a monochromatic effect where all icons share
+	  the same base color. You can use an HSL color picker with saturation
+	  set to 80 and lightness set to 70.
+	- *-1* or *none*: Convert all icons to grayscale.
+
+	Default: _not set_ (icons use their original colors).
+
 *hide-before-typing*
 	Boolean. When enabled, application list will be hidden until the first
 	letter is typed. When the prompt is cleared again, the list will appear.
