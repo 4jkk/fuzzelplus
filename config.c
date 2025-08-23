@@ -1667,7 +1667,7 @@ config_load(struct config *conf, const char *conf_path,
         .filter_desktop = false,
         .icons_enabled = true,
         .icon_theme = xstrdup("default"),
-        .icon_hue = -1,  /* disabled by default */
+        .icon_hue = -2,  /* disabled by default (-2 = no transform, -1 = grayscale, 0-360 = tint) */
         .hide_when_prompt_empty = false,
         .actions_enabled = false,
         .match_mode = MATCH_MODE_FZF,
