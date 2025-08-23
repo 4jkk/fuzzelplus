@@ -1,6 +1,7 @@
 #include "render.h"
 
 #include <limits.h>
+#include <math.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <signal.h>
@@ -1121,6 +1122,74 @@ apply_monochrome_transform(uint16_t *r, uint16_t *g, uint16_t *b,
     }
 }
 
+/* iOS 18-style dual-tone tinting algorithm */
+static inline void
+apply_ios_style_tint(uint16_t *r, uint16_t *g, uint16_t *b,
+                     uint8_t tint_r, uint8_t tint_g, uint8_t tint_b,
+                     bool is_grayscale)
+{
+    /* Calculate original luminance */
+    float luminance = (0.2126f * (*r) + 0.7152f * (*g) + 0.0722f * (*b)) / 255.0f;
+
+    /* Special handling for very dark colors */
+    bool was_very_dark = false;
+    if (luminance < 0.1f && (*r < 26 && *g < 26 && *b < 26)) {
+        was_very_dark = true;
+        luminance = 0.7f;  /* Boost visibility */
+    }
+
+    if (is_grayscale) {
+        /* For grayscale, apply iOS-style contrast mapping */
+        /* Maps to a range that preserves visual hierarchy */
+        float mapped = 0.15f + (luminance * 0.7f);  /* Range: 0.15 to 0.85 */
+        uint16_t gray = (uint16_t)(mapped * 255.0f);
+        *r = gray;
+        *g = gray;
+        *b = gray;
+    } else {
+        /* iOS-style dual-tone tinting */
+        /* Create a gradient from dark to light versions of the tint color */
+
+        /* Map luminance to a curve that preserves contrast */
+        /* Using a sigmoid-like curve for smoother transitions */
+        float contrast_boost = 1.2f;
+        float x = (luminance - 0.5f) * contrast_boost;
+        float mapped_lum = 1.0f / (1.0f + expf(-x * 5.0f));
+
+        /* Create light and dark variants based on mapped luminance */
+        float light_factor, dark_factor;
+
+        if (mapped_lum > 0.65f) {
+            /* Lighter areas: boost brightness while maintaining hue */
+            light_factor = 0.85f + (mapped_lum * 0.35f);  /* 0.85 to 1.2 */
+            *r = (uint16_t)fminf(tint_r * light_factor, 255.0f);
+            *g = (uint16_t)fminf(tint_g * light_factor, 255.0f);
+            *b = (uint16_t)fminf(tint_b * light_factor, 255.0f);
+        } else if (mapped_lum > 0.35f) {
+            /* Mid-tones: more contrast by darkening slightly */
+            /* Linear interpolation between dark and light for smooth gradient */
+            float t = (mapped_lum - 0.35f) / 0.3f;  /* Normalize to 0-1 range */
+            float mid_factor = 0.4f + (t * 0.45f);  /* 0.4 to 0.85 */
+            *r = (uint16_t)(tint_r * mid_factor);
+            *g = (uint16_t)(tint_g * mid_factor);
+            *b = (uint16_t)(tint_b * mid_factor);
+        } else {
+            /* Darker areas: create darker variant of tint */
+            dark_factor = 0.15f + (mapped_lum * 0.7f);  /* 0.15 to 0.4 */
+            *r = (uint16_t)(tint_r * dark_factor);
+            *g = (uint16_t)(tint_g * dark_factor);
+            *b = (uint16_t)(tint_b * dark_factor);
+        }
+
+        /* For originally very dark icons, ensure minimum visibility */
+        if (was_very_dark) {
+            *r = (uint16_t)fmaxf(*r, tint_r * 0.5f);
+            *g = (uint16_t)fmaxf(*g, tint_g * 0.5f);
+            *b = (uint16_t)fmaxf(*b, tint_b * 0.5f);
+        }
+    }
+}
+
 static void
 render_svg_resvg(struct icon *icon, int x, int y, int size,
                  pixman_image_t *pix, cairo_t *cairo, bool gamma_correct,
@@ -1177,6 +1246,7 @@ render_svg_resvg(struct icon *icon, int x, int y, int size,
             LOG_DBG("Applying icon hue %d -> RGB(%d,%d,%d)",
                     conf->icon_hue, mono_r, mono_g, mono_b);
         }
+        /* else icon_hue == -2 or other negative: no transformation (full color) */
 
         if (gamma_correct) {
             /* For gamma-correct blending, create 16-bit buffer and image */
@@ -1200,8 +1270,9 @@ render_svg_resvg(struct icon *icon, int x, int y, int size,
                     uint16_t orig_green = (green * 0xff) / alpha;
                     uint16_t orig_blue = (blue * 0xff) / alpha;
 
-                    apply_monochrome_transform(&orig_red, &orig_green, &orig_blue,
-                                              mono_r, mono_g, mono_b, is_grayscale);
+                    /* Use iOS-style tinting */
+                    apply_ios_style_tint(&orig_red, &orig_green, &orig_blue,
+                                        mono_r, mono_g, mono_b, is_grayscale);
 
                     /* Re-premultiply */
                     red = (orig_red * alpha) / 0xff;
@@ -1259,8 +1330,9 @@ render_svg_resvg(struct icon *icon, int x, int y, int size,
                     uint16_t orig_green = (green * 0xff) / alpha;
                     uint16_t orig_blue = (blue * 0xff) / alpha;
 
-                    apply_monochrome_transform(&orig_red, &orig_green, &orig_blue,
-                                              mono_r, mono_g, mono_b, is_grayscale);
+                    /* Use iOS-style tinting */
+                    apply_ios_style_tint(&orig_red, &orig_green, &orig_blue,
+                                        mono_r, mono_g, mono_b, is_grayscale);
 
                     /* Re-premultiply */
                     red = (orig_red * alpha) / 0xff;
@@ -1344,7 +1416,83 @@ render_svg(struct icon *icon, int x, int y, int size,
 }
 
 #if defined(FUZZEL_ENABLE_PNG_LIBPNG)
-/* Apply monochrome transformation to PNG pixman image */
+/* iOS-style PNG color transformation */
+static pixman_image_t *
+apply_png_color_transform_ios(pixman_image_t *src,
+                              uint8_t mono_r, uint8_t mono_g, uint8_t mono_b,
+                              bool is_grayscale)
+{
+    /* If RGB values are 0,0,0 and not grayscale, then no transformation */
+    if (mono_r == 0 && mono_g == 0 && mono_b == 0 && !is_grayscale)
+        return src;
+
+    pixman_format_code_t fmt = pixman_image_get_format(src);
+    int width = pixman_image_get_width(src);
+    int height = pixman_image_get_height(src);
+    int stride = pixman_image_get_stride(src);
+
+    /* Only process ARGB32 format for now */
+    if (fmt != PIXMAN_a8r8g8b8 && fmt != PIXMAN_a8b8g8r8)
+        return src;
+
+    /* Create a copy of the image data */
+    uint8_t *src_data = (uint8_t *)pixman_image_get_data(src);
+    uint8_t *new_data = xmalloc(height * stride);
+    memcpy(new_data, src_data, height * stride);
+
+    /* Process pixels */
+    for (int row = 0; row < height; row++) {
+        uint32_t *pixels = (uint32_t *)(new_data + row * stride);
+        for (int col = 0; col < width; col++) {
+            uint32_t pixel = pixels[col];
+
+            uint8_t alpha, red, green, blue;
+            if (fmt == PIXMAN_a8r8g8b8) {
+                alpha = (pixel >> 24) & 0xff;
+                red = (pixel >> 16) & 0xff;
+                green = (pixel >> 8) & 0xff;
+                blue = (pixel >> 0) & 0xff;
+            } else {  /* PIXMAN_a8b8g8r8 */
+                alpha = (pixel >> 24) & 0xff;
+                blue = (pixel >> 16) & 0xff;
+                green = (pixel >> 8) & 0xff;
+                red = (pixel >> 0) & 0xff;
+            }
+
+            if (alpha > 0) {
+                /* Un-premultiply */
+                uint16_t orig_red = (red * 0xff) / alpha;
+                uint16_t orig_green = (green * 0xff) / alpha;
+                uint16_t orig_blue = (blue * 0xff) / alpha;
+
+                /* Apply iOS-style transformation */
+                apply_ios_style_tint(&orig_red, &orig_green, &orig_blue,
+                                    mono_r, mono_g, mono_b, is_grayscale);
+
+                /* Clamp to 8-bit range and re-premultiply */
+                red = (uint8_t)fminf(orig_red, 255) * alpha / 0xff;
+                green = (uint8_t)fminf(orig_green, 255) * alpha / 0xff;
+                blue = (uint8_t)fminf(orig_blue, 255) * alpha / 0xff;
+            }
+
+            /* Reassemble pixel */
+            if (fmt == PIXMAN_a8r8g8b8) {
+                pixels[col] = (alpha << 24) | (red << 16) | (green << 8) | blue;
+            } else {  /* PIXMAN_a8b8g8r8 */
+                pixels[col] = (alpha << 24) | (blue << 16) | (green << 8) | red;
+            }
+        }
+    }
+
+    /* Create new pixman image with transformed data */
+    pixman_image_t *transformed = pixman_image_create_bits_no_clear(
+        fmt, width, height, (uint32_t *)new_data, stride);
+
+    return transformed;
+}
+
+/* Apply monochrome transformation to PNG pixman image (old algorithm) */
+__attribute__((unused))
 static pixman_image_t *
 apply_png_color_transform(pixman_image_t *src,
                           uint8_t mono_r, uint8_t mono_g, uint8_t mono_b,
@@ -1597,9 +1745,14 @@ render_png_libpng(struct icon *icon, int x, int y, int size,
         /* Monochrome tinting mode */
         hue_to_rgb(conf->icon_hue, &mono_r, &mono_g, &mono_b);
     }
+    /* else icon_hue == -2 or other negative: no transformation (full color) */
 
-    pixman_image_t *transformed_png = apply_png_color_transform(
+    /* Use iOS-style tinting (comment out to use old algorithm) */
+    pixman_image_t *transformed_png = apply_png_color_transform_ios(
         png, mono_r, mono_g, mono_b, is_grayscale);
+    /* Old algorithm: */
+    /* pixman_image_t *transformed_png = apply_png_color_transform(
+        png, mono_r, mono_g, mono_b, is_grayscale); */
 
     bool needs_cleanup = (transformed_png != png);
 
