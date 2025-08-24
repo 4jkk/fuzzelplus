@@ -33,6 +33,14 @@
 
 ## Unreleased
 ### Added
+
+ * Faster, more accurate SVG rendering with `resvg` backend. It does not
+   require cairo and supports gamma correction. Packagers are advised to
+   prefer this backend. The librsvg and nanosvg backends may be removed
+   in a future release ([#650][650]).
+
+[650]: https://codeberg.org/dnkl/fuzzel/issues/650
+
 ### Changed
 ### Deprecated
 ### Removed
@@ -40,6 +48,7 @@
 ### Security
 ### Contributors
 
+ * Mark Stosberg
 
 ## 1.13.1
 
@@ -54,12 +63,10 @@
 [653]: https://codeberg.org/dnkl/fuzzel/issues/653
 [652]: https://codeberg.org/dnkl/fuzzel/issues/652
 
-
 ### Contributors
 
  * Mark Stosberg
  * rehanzo
-
 
 ## 1.13.0
 

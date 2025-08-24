@@ -1092,11 +1092,6 @@ render_svg_resvg(struct icon *icon, int x, int y, int size,
         const int width = roundf(svg_size.width * scale);
         const int height = roundf(svg_size.height * scale);
 
-        /* For gamma-correct blending */
-        uint8_t *data_16bit = NULL;
-        pixman_image_t *img_16bit = NULL;
-        uint64_t *abgr16 = NULL;
-
         uint8_t *data_8bit = xmalloc(width * height * 4);
         memset(data_8bit, 0, width * height * 4);
 
@@ -1107,25 +1102,20 @@ render_svg_resvg(struct icon *icon, int x, int y, int size,
         resvg_render(tree, transform, width, height, (char *)data_8bit);
 
         if (gamma_correct) {
-            data_16bit = xmalloc(width * height * 8);
-            abgr16 = (uint64_t *)data_16bit;
+            /* For gamma-correct blending, create 16-bit buffer and image */
+            uint8_t *data_16bit = xmalloc(width * height * 8);
+            uint64_t *abgr16 = (uint64_t *)data_16bit;
 
-            img_16bit = pixman_image_create_bits_no_clear(
-                PIXMAN_a16b16g16r16, width, height, (uint32_t *)data_16bit,
-                width * 8);
-        }
+            /* resvg produces premultiplied RGBA, need to convert to ABGR16 for pixman */
+            for (uint32_t *rgba = (uint32_t *)data_8bit;
+                 rgba < (uint32_t *)(data_8bit + width * height * 4);
+                 rgba++)
+            {
+                uint16_t red = (*rgba >> 0) & 0xff;
+                uint16_t green = (*rgba >> 8) & 0xff;
+                uint16_t blue = (*rgba >> 16) & 0xff;
+                uint16_t alpha = (*rgba >> 24) & 0xff;
 
-        /* resvg produces premultiplied RGBA, need to convert to ABGR for pixman */
-        for (uint32_t *rgba = (uint32_t *)data_8bit;
-             rgba < (uint32_t *)(data_8bit + width * height * 4);
-             rgba++)
-        {
-            uint16_t red = (*rgba >> 0) & 0xff;
-            uint16_t green = (*rgba >> 8) & 0xff;
-            uint16_t blue = (*rgba >> 16) & 0xff;
-            uint16_t alpha = (*rgba >> 24) & 0xff;
-
-            if (gamma_correct) {
                 /* Decode sRGB to linear for gamma-correct blending */
                 if (alpha == 0x00) {
                     blue = green = red = 0x00;
@@ -1149,20 +1139,32 @@ render_svg_resvg(struct icon *icon, int x, int y, int size,
 
                 *abgr16 = (uint64_t)alpha << 48 | (uint64_t)blue << 32 | (uint64_t)green << 16 | (uint64_t)red;
                 abgr16++;
-            } else {
-                /* Convert RGBA to ABGR (already premultiplied) */
+            }
+
+            /* Free the 8-bit buffer as we've converted everything to 16-bit */
+            free(data_8bit);
+
+            /* Create 16-bit pixman image */
+            img = pixman_image_create_bits_no_clear(
+                PIXMAN_a16b16g16r16, width, height, (uint32_t *)data_16bit,
+                width * 8);
+        } else {
+            /* Convert RGBA to ABGR (already premultiplied) */
+            for (uint32_t *rgba = (uint32_t *)data_8bit;
+                 rgba < (uint32_t *)(data_8bit + width * height * 4);
+                 rgba++)
+            {
+                uint16_t red = (*rgba >> 0) & 0xff;
+                uint16_t green = (*rgba >> 8) & 0xff;
+                uint16_t blue = (*rgba >> 16) & 0xff;
+                uint16_t alpha = (*rgba >> 24) & 0xff;
+
                 *rgba = (uint32_t)alpha << 24 | blue << 16 | green << 8 | red;
             }
-        }
 
-        img = pixman_image_create_bits_no_clear(
-            PIXMAN_a8b8g8r8, width, height, (uint32_t *)data_8bit, width * 4);
-
-        if (gamma_correct) {
-            /* Replace default image buffer with 16-bit linear buffer */
-            pixman_image_unref(img);
-            free(data_8bit);
-            img = img_16bit;
+            /* Create 8-bit pixman image */
+            img = pixman_image_create_bits_no_clear(
+                PIXMAN_a8b8g8r8, width, height, (uint32_t *)data_8bit, width * 4);
         }
 
         tll_push_back(icon->rasterized, ((struct rasterized){img, size}));
