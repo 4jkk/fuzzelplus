@@ -1309,6 +1309,54 @@ render_svg_resvg(struct icon *icon, int x, int y, int size,
                 PIXMAN_a16b16g16r16, width, height, (uint32_t *)data_16bit,
                 width * 8);
         } else {
+            /* Apply color transformation for non-gamma-correct path if enabled */
+            if (color_mode > 0) {
+                /* resvg outputs RGBA8888 premultiplied, but pixman expects ABGR8888 */
+                /* Process each pixel to apply tinting and convert format */
+                for (uint32_t *rgba = (uint32_t *)data_8bit;
+                     rgba < (uint32_t *)(data_8bit + width * height * 4);
+                     rgba++)
+                {
+                    uint16_t red = (*rgba >> 0) & 0xff;
+                    uint16_t green = (*rgba >> 8) & 0xff;
+                    uint16_t blue = (*rgba >> 16) & 0xff;
+                    uint16_t alpha = (*rgba >> 24) & 0xff;
+
+                    if (alpha > 0) {
+                        /* Un-premultiply first */
+                        uint16_t orig_red = (red * 0xff) / alpha;
+                        uint16_t orig_green = (green * 0xff) / alpha;
+                        uint16_t orig_blue = (blue * 0xff) / alpha;
+
+                        /* Use iOS-style tinting */
+                        apply_ios_style_tint(&orig_red, &orig_green, &orig_blue,
+                                            mono_r, mono_g, mono_b, is_grayscale);
+
+                        /* Re-premultiply */
+                        red = (orig_red * alpha) / 0xff;
+                        green = (orig_green * alpha) / 0xff;
+                        blue = (orig_blue * alpha) / 0xff;
+                    }
+
+                    /* Convert RGBA to ABGR for pixman */
+                    *rgba = (uint32_t)alpha << 24 | blue << 16 | green << 8 | red;
+                }
+            } else {
+                /* No tinting - just convert RGBA to ABGR since resvg outputs RGBA */
+                /* but pixman expects ABGR */
+                for (uint32_t *rgba = (uint32_t *)data_8bit;
+                     rgba < (uint32_t *)(data_8bit + width * height * 4);
+                     rgba++)
+                {
+                    uint16_t red = (*rgba >> 0) & 0xff;
+                    uint16_t green = (*rgba >> 8) & 0xff;
+                    uint16_t blue = (*rgba >> 16) & 0xff;
+                    uint16_t alpha = (*rgba >> 24) & 0xff;
+
+                    *rgba = (uint32_t)alpha << 24 | blue << 16 | green << 8 | red;
+                }
+            }
+
             /* Create 8-bit pixman image */
             img = pixman_image_create_bits_no_clear(
                 PIXMAN_a8b8g8r8, width, height, (uint32_t *)data_8bit, width * 4);
