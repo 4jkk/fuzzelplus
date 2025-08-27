@@ -1749,7 +1749,7 @@ main(int argc, char *const *argv)
                     cmdline_overrides.conf.dmenu.with_nth_format =
                         xasprintf("{%u}", with_nth_idx);
                 }
-            } else
+            } else if (optarg[0] != '\0')
                 cmdline_overrides.conf.dmenu.with_nth_format = xstrdup(optarg);
             cmdline_overrides.dmenu_with_nth_set = true;
             break;
@@ -1767,7 +1767,7 @@ main(int argc, char *const *argv)
                     cmdline_overrides.conf.dmenu.accept_nth_format =
                         xasprintf("{%u}", accept_nth_idx);
                 }
-            } else
+            } else if (optarg[0] != '\0')
                 cmdline_overrides.conf.dmenu.accept_nth_format = xstrdup(optarg);
 
             cmdline_overrides.dmenu_accept_nth_set = true;
