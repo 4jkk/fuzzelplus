@@ -425,6 +425,10 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	Boolean. Enable mouse input.
 	Default: _yes_.
 
+*scroll-page*
+	Boolean. Enable page navigation with scroll wheel.
+	Default: _no_.
+
 # SECTION: colors
 
 All color values are in RGBA.

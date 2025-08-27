@@ -1714,7 +1714,7 @@ config_load(struct config *conf, const char *conf_path,
         .auto_select = false,
         .print_timing_info = false,
         .enable_mouse = true,
-        .scroll_page = true,
+        .scroll_page = false,
     };
 
     add_default_key_bindings(conf);
