@@ -1734,7 +1734,6 @@ main(int argc, char *const *argv)
 
             cmdline_overrides.conf.dmenu.nth_delim = optarg[0];
             cmdline_overrides.dmenu_nth_delim_set = true;
-            printf("LKDJFLKDJF: delim: %c (%x)\n", cmdline_overrides.conf.dmenu.nth_delim, cmdline_overrides.conf.dmenu.nth_delim);
             break;
 
         case OPT_DMENU_WITH_NTH: {
