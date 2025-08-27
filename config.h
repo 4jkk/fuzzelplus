@@ -226,6 +226,8 @@ struct config {
     bool print_timing_info;
 
     bool enable_mouse;
+
+    bool scroll_page;
 };
 
 typedef tll(char *) config_override_t;

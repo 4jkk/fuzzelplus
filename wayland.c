@@ -146,6 +146,7 @@ struct wayland {
     bool font_is_sized_by_dpi;
     bool hide_when_prompt_empty;
     bool enable_mouse;
+    bool scroll_page;
 
     enum { KEEP_RUNNING, EXIT_UPDATE_CACHE, EXIT} status;
     int exit_code;
@@ -1225,9 +1226,17 @@ wl_pointer_axis(void *data, struct wl_pointer *wl_pointer,
     bool refresh = false;
 
     if (value < 0) {
-        refresh = matches_selected_prev(wayl->matches, true);
+        if (wayl->scroll_page) {
+            refresh = matches_selected_prev_page(wayl->matches, true);
+        } else {
+            refresh = matches_selected_prev(wayl->matches, true);
+        }
     } else if (value > 0) {
-        refresh = matches_selected_next(wayl->matches, true);
+        if (wayl->scroll_page) {
+            refresh = matches_selected_next_page(wayl->matches, true);
+        } else {
+            refresh = matches_selected_next(wayl->matches, true);
+        }
     }
 
     if (refresh) {
@@ -2732,6 +2741,7 @@ wayl_init(const struct config *conf, struct fdm *fdm,
         .matches = matches,
         .hide_when_prompt_empty = conf->hide_when_prompt_empty,
         .enable_mouse = conf->enable_mouse,
+        .scroll_page = conf->scroll_page,
         .status = KEEP_RUNNING,
         .exit_code = !conf->dmenu.enabled ? EXIT_SUCCESS : EXIT_FAILURE,
         .font_reloaded = {

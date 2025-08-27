@@ -1040,6 +1040,9 @@ parse_section_main(struct context *ctx)
     else if (strcmp(key, "enable-mouse") == 0)
         return value_to_bool(ctx, &conf->enable_mouse);
 
+    else if (strcmp(key, "scroll-page") == 0)
+        return value_to_bool(ctx, &conf->scroll_page);
+
     else
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
 
@@ -1711,6 +1714,7 @@ config_load(struct config *conf, const char *conf_path,
         .auto_select = false,
         .print_timing_info = false,
         .enable_mouse = true,
+        .scroll_page = true,
     };
 
     add_default_key_bindings(conf);
