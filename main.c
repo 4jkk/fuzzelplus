@@ -1738,21 +1738,38 @@ main(int argc, char *const *argv)
             break;
 
         case OPT_DMENU_WITH_NTH: {
+            free(cmdline_overrides.conf.dmenu.with_nth_format);
+            cmdline_overrides.conf.dmenu.with_nth_format = NULL;
+
             unsigned int with_nth_idx;
-            if (sscanf(optarg, "%u", &with_nth_idx) == 1)
-                cmdline_overrides.conf.dmenu.with_nth_format = xasprintf("{%u}", with_nth_idx);
-            else
+            if (sscanf(optarg, "%u", &with_nth_idx) == 1) {
+                if (with_nth_idx == 0) {
+                    /* Do nothing more - i.e. leave it unset */
+                } else {
+                    cmdline_overrides.conf.dmenu.with_nth_format =
+                        xasprintf("{%u}", with_nth_idx);
+                }
+            } else
                 cmdline_overrides.conf.dmenu.with_nth_format = xstrdup(optarg);
             cmdline_overrides.dmenu_with_nth_set = true;
             break;
         }
 
         case OPT_DMENU_ACCEPT_NTH: {
+            free(cmdline_overrides.conf.dmenu.accept_nth_format);
+            cmdline_overrides.conf.dmenu.accept_nth_format = NULL;
+
             unsigned int accept_nth_idx;
-            if (sscanf(optarg, "%u", &accept_nth_idx) == 1)
-                cmdline_overrides.conf.dmenu.accept_nth_format = xasprintf("{%u}", accept_nth_idx);
-            else
+            if (sscanf(optarg, "%u", &accept_nth_idx) == 1) {
+                if (accept_nth_idx == 0) {
+                    /* Do nothing more - i.e. leave it unset */
+                } else {
+                    cmdline_overrides.conf.dmenu.accept_nth_format =
+                        xasprintf("{%u}", accept_nth_idx);
+                }
+            } else
                 cmdline_overrides.conf.dmenu.accept_nth_format = xstrdup(optarg);
+
             cmdline_overrides.dmenu_accept_nth_set = true;
             break;
         }
