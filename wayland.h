@@ -13,6 +13,7 @@
 #include "match.h"
 #include "prompt.h"
 #include "render.h"
+#include "window-switch.h"
 
 struct wayland;
 
@@ -93,6 +94,9 @@ struct wayland *wayl_init(
     struct kb_manager *kb_manager, struct render *render,
     struct prompt *prompt, struct matches *matches,
     font_reloaded_t font_reloaded_cb, void *data);
+
+struct window_switch *wayl_get_window_switch(struct wayland *wayl);
+struct wl_display *wayl_get_display(struct wayland *wayl);
 
 void wayl_destroy(struct wayland *wayl);
 

@@ -452,6 +452,19 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 
 	Default: _box_
 
+*--switch-window*
+	Window switching mode. Shows a list of all open windows from all
+	workspaces that can be switched to. The selected window will be
+	activated (brought to focus). This mode uses the Wayland
+	wlr-foreign-toplevel-management protocol to enumerate and control
+	windows.
+
+	This option cannot be used together with *--dmenu*.
+
+*--window-format*=_FORMAT_
+	Format string for displaying window entries in window switching mode.
+	See *fuzzel.ini*(5) for format details.
+
 *-d*,*--dmenu*
 	dmenu compatibility mode. In this mode, the list entries are read
 	from stdin (newline separated). The selected entry is printed to

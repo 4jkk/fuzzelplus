@@ -864,3 +864,69 @@ xdg_cache_dir(void)
 
     return NULL;
 }
+
+char *
+xdg_lookup_icon_name_for_app_id(const char *app_id)
+{
+    if (!app_id)
+        return NULL;
+
+    /* Get XDG data directories */
+    xdg_data_dirs_t dirs = xdg_data_dirs();
+    char *icon_name = NULL;
+
+    tll_foreach(dirs, it) {
+        /* Try both app_id.desktop and app_id directly */
+        const char *patterns[] = {
+            "%s/applications/%s.desktop",
+            "%s/applications/%s"
+        };
+
+        for (size_t i = 0; i < sizeof(patterns) / sizeof(patterns[0]); i++) {
+            char *desktop_path = xasprintf(patterns[i], it->item.path, app_id);
+
+            FILE *f = fopen(desktop_path, "r");
+            if (f) {
+                char line[1024];
+                bool in_desktop_entry = false;
+
+                while (fgets(line, sizeof(line), f)) {
+                    /* Remove trailing newline */
+                    size_t len = strlen(line);
+                    if (len > 0 && line[len - 1] == '\n')
+                        line[len - 1] = '\0';
+
+                    /* Check for [Desktop Entry] section */
+                    if (strncmp(line, "[Desktop Entry]", 15) == 0) {
+                        in_desktop_entry = true;
+                        continue;
+                    }
+
+                    /* Stop at next section */
+                    if (line[0] == '[' && in_desktop_entry) {
+                        break;
+                    }
+
+                    /* Look for Icon= line */
+                    if (in_desktop_entry && strncmp(line, "Icon=", 5) == 0) {
+                        icon_name = xstrdup(line + 5);
+                        break;
+                    }
+                }
+
+                fclose(f);
+                free(desktop_path);
+
+                if (icon_name) {
+                    goto cleanup;
+                }
+            } else {
+                free(desktop_path);
+            }
+        }
+    }
+
+cleanup:
+    xdg_data_dirs_destroy(dirs);
+    return icon_name;
+}

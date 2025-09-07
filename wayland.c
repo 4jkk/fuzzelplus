@@ -199,6 +199,9 @@ struct wayland {
     bool shm_have_abgr161616;
     bool shm_have_xbgr161616;
 
+    /* Window switching support */
+    struct window_switch *window_switch;
+
     bool ready_to_display;
 };
 
@@ -644,6 +647,15 @@ execute_selected(struct seat *seat, bool as_is, int custom_success_exit_code)
         wayl->status = EXIT_UPDATE_CACHE;
         if (app != NULL)
             app->count++;
+    } else if (wayl->conf->window_switch.enabled && wayl->window_switch) {
+        /* Window switching mode - activate the selected window */
+        bool success = window_switch_activate(wayl->window_switch, index);
+        wayl->exit_code = success
+            ? (custom_success_exit_code >= 0
+               ? custom_success_exit_code
+               : EXIT_SUCCESS)
+            : EXIT_FAILURE;
+        wayl->status = EXIT;
     } else {
         char *xdg_activation_token = NULL;
         if (wayl->xdg_activation_v1 != NULL && app != NULL && app->startup_notify)
@@ -2227,6 +2239,11 @@ handle_global(void *data, struct wl_registry *registry,
         seat_add_primary_selection(seat);
         kb_new_for_seat(wayl->kb_manager, wayl->conf, seat);
         wl_seat_add_listener(wl_seat, &seat_listener, seat);
+
+        /* Update window switching with the first available seat */
+        if (wayl->window_switch && wayl->window_switch->seat == NULL) {
+            wayl->window_switch->seat = wl_seat;
+        }
     }
 
     else if (strcmp(interface, zxdg_output_manager_v1_interface.name) == 0) {
@@ -2310,6 +2327,11 @@ handle_global(void *data, struct wl_registry *registry,
 
         wp_color_manager_v1_add_listener(
             wayl->color_management.manager, &color_manager_listener, wayl);
+    }
+
+    /* Window switching protocol */
+    if (wayl->window_switch) {
+        window_switch_registry_global(wayl->window_switch, registry, name, interface, version);
     }
 
 }
@@ -2806,6 +2828,15 @@ wayl_init(const struct config *conf, struct fdm *fdm,
         goto out;
     }
 
+    /* Initialize window switching if enabled - must be done before registry listener */
+    if (conf->window_switch.enabled) {
+        wayl->window_switch = window_switch_init(fdm, wayl, wayl->display, NULL);
+        if (!wayl->window_switch) {
+            LOG_ERR("failed to initialize window switching");
+            goto out;
+        }
+    }
+
     wl_registry_add_listener(wayl->registry, &registry_listener, wayl);
     wl_display_roundtrip(wayl->display);
 
@@ -3018,6 +3049,12 @@ wayl_destroy(struct wayland *wayl)
         wl_shm_destroy(wayl->shm);
     if (wayl->registry != NULL)
         wl_registry_destroy(wayl->registry);
+
+    /* Clean up window switching BEFORE disconnecting display */
+    if (wayl->window_switch) {
+        window_switch_destroy(wayl->window_switch);
+    }
+
     if (wayl->display != NULL) {
         wayl_flush(wayl);
         wl_display_disconnect(wayl->display);
@@ -3118,4 +3155,16 @@ wayl_do_linear_blending(const struct wayland *wayl)
 #else
     return false;
 #endif
+}
+
+struct window_switch *
+wayl_get_window_switch(struct wayland *wayl)
+{
+    return wayl->window_switch;
+}
+
+struct wl_display *
+wayl_get_display(struct wayland *wayl)
+{
+    return wayl->display;
 }

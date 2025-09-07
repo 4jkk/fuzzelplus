@@ -20,3 +20,6 @@ void xdg_find_programs(
     const char *terminal, bool include_actions,
     bool filter_desktop, char_list_t *desktops,
     struct application_list *applications);
+
+/* Lookup icon name from desktop files based on app_id */
+char *xdg_lookup_icon_name_for_app_id(const char *app_id);

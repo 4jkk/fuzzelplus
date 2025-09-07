@@ -38,6 +38,7 @@
 #include "shm.h"
 #include "version.h"
 #include "wayland.h"
+#include "window-switch.h"
 #include "xdg.h"
 #include "xmalloc.h"
 #include "xsnprintf.h"
@@ -444,6 +445,10 @@ print_usage(const char *prog_name)
            "                                 default) of each input line (dmenu only)\n"
            "     --nth-delimiter=CHARACTER   field (column) character, for --with-nth and\n"
            "                                 --accept-nth\n"
+           "     --switch-window             window switching mode - display and switch\n"
+           "                                 between currently mapped windows\n"
+           "     --window-format=FORMAT      format string for window entries in window\n"
+           "                                 switching mode\n"
            "  -R,--no-run-if-empty           exit immediately without showing UI if stdin\n"
            "                                 is empty (dmenu mode only)\n"
            "     --log-level={info|warning|error|none}\n"
@@ -566,6 +571,7 @@ populate_apps(void *_ctx)
     const char *terminal = conf->terminal;
     bool actions_enabled = conf->actions_enabled;
     bool dmenu_enabled = conf->dmenu.enabled;
+    bool window_switch_enabled = conf->window_switch.enabled;
     bool icons_enabled = conf->icons_enabled;
     char dmenu_delim = conf->dmenu.delim;
     char dmenu_nth_delim = conf->dmenu.nth_delim;
@@ -596,6 +602,42 @@ populate_apps(void *_ctx)
                 ctx->event_fd, ctx->dmenu_abort_fd);
             read_cache(cache_path, apps, true);
         }
+    } else if (window_switch_enabled) {
+        /* Window switching mode - windows will be populated via Wayland protocol */
+        gettimeofday(&ctx->timing.apps.start, NULL);
+
+        /* Get window switch instance from wayland module */
+        struct window_switch *window_switch = wayl_get_window_switch(ctx->wayl);
+        if (window_switch) {
+            /* Check if compositor supports the protocol */
+            if (!window_switch_check_compositor_support(window_switch)) {
+                LOG_ERRNO("Compositor does not implement wlr-foreign-toplevel-management.");
+                return -1;
+            }
+
+            /* Wait a bit for initial window list to populate */
+            wl_display_roundtrip(wayl_get_display(ctx->wayl));
+
+            /* Convert windows to applications format */
+            struct application_list *window_apps = window_switch_to_applications(
+                window_switch, conf->window_switch.format_string);
+
+            if (window_apps && window_apps->count > 0) {
+                /* Move applications from window list to main apps list */
+                mtx_lock(&apps->lock);
+                apps->v = window_apps->v;
+                apps->count = window_apps->count;
+                apps->visible_count = window_apps->visible_count;
+                mtx_unlock(&apps->lock);
+
+                /* Clear the window apps structure without freeing the apps */
+                mtx_destroy(&window_apps->lock);
+                free(window_apps);
+            }
+        }
+
+        gettimeofday(&ctx->timing.apps.stop, NULL);
+        timersub(&ctx->timing.apps.stop, &ctx->timing.apps.start, &ctx->timing.apps.diff);
     } else {
         gettimeofday(&ctx->timing.apps.start, NULL);
         xdg_find_programs(terminal, actions_enabled, filter_desktop, &desktops, apps);
@@ -857,6 +899,8 @@ main(int argc, char *const *argv)
     #define OPT_SELECTION_RADIUS             306
     #define OPT_NO_MOUSE                     307
     #define OPT_DMENU_NTH_DELIM              308
+    #define OPT_SWITCH_WINDOW                309
+    #define OPT_WINDOW_FORMAT                310
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -936,6 +980,8 @@ main(int argc, char *const *argv)
         {"nth-delimiter",        required_argument, 0, OPT_DMENU_NTH_DELIM},
         {"with-nth",             required_argument, 0, OPT_DMENU_WITH_NTH},
         {"accept-nth",           required_argument, 0, OPT_DMENU_ACCEPT_NTH},
+        {"switch-window",        no_argument,       0, OPT_SWITCH_WINDOW},
+        {"window-format",        required_argument, 0, OPT_WINDOW_FORMAT},
 
         /* Misc */
         {"log-level",            required_argument, 0, OPT_LOG_LEVEL},
@@ -1773,6 +1819,14 @@ main(int argc, char *const *argv)
             break;
         }
 
+        case OPT_SWITCH_WINDOW:
+            /* Window switching mode is handled later */
+            break;
+
+        case OPT_WINDOW_FORMAT:
+            cmdline_overrides.conf.window_switch.format_string = optarg;
+            break;
+
         case OPT_LOG_LEVEL: {
             int lvl = log_level_from_string(optarg);
             if (lvl < 0) {
@@ -1921,6 +1975,25 @@ main(int argc, char *const *argv)
     if (select != NULL && select_idx) {
         LOG_ERRNO("--select and --select-index cannot be used at the same time");
         return ret;
+    }
+
+    /* Check if --dmenu and --switch-window are used together */
+    bool switch_windows_mode = false;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--switch-window") == 0) {
+            switch_windows_mode = true;
+            break;
+        }
+    }
+
+    if (switch_windows_mode && cmdline_overrides.dmenu_enabled_set) {
+        LOG_ERRNO("--dmenu and --switch-window cannot be used at the same time");
+        return ret;
+    }
+
+    /* Enable window switching mode if requested */
+    if (switch_windows_mode) {
+        cmdline_overrides.conf.window_switch.enabled = true;
     }
 
     if (cmdline_overrides.prompt_only_set && cmdline_overrides.conf.hide_prompt) {
@@ -2119,6 +2192,12 @@ main(int argc, char *const *argv)
         conf.auto_select = cmdline_overrides.conf.auto_select;
     if (cmdline_overrides.no_mouse_set)
         conf.enable_mouse = cmdline_overrides.conf.enable_mouse;
+    if (cmdline_overrides.conf.window_switch.enabled)
+        conf.window_switch.enabled = cmdline_overrides.conf.window_switch.enabled;
+    if (cmdline_overrides.conf.window_switch.format_string != NULL) {
+        free(conf.window_switch.format_string);
+        conf.window_switch.format_string = xstrdup(cmdline_overrides.conf.window_switch.format_string);
+    }
 
     if (conf.dmenu.enabled) {
         /* We don't have any meta data in dmenu mode */
@@ -2130,6 +2209,9 @@ main(int argc, char *const *argv)
             conf.dmenu.exit_immediately_if_empty = false;
             close(STDIN_FILENO);  /* To catch reads */
         }
+    } else if (conf.window_switch.enabled) {
+        /* In window switching mode, match against both title and app_id */
+        conf.match_fields = MATCH_NAME | MATCH_FILENAME;
     }
 
     _Static_assert((int)LOG_CLASS_ERROR == (int)FCFT_LOG_CLASS_ERROR,

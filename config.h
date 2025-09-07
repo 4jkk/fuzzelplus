@@ -171,6 +171,11 @@ struct config {
         char *accept_nth_format;
     } dmenu;
 
+    struct {
+        bool enabled;
+        char *format_string;
+    } window_switch;
+
     enum anchors anchor;
 
     struct {

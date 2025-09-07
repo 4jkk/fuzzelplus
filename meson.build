@@ -143,6 +143,7 @@ wl_proto_src = []
 
 wl_proto_xml = [
   'external/wlr-layer-shell-unstable-v1.xml',
+  'external/wlr-protocols/unstable/wlr-foreign-toplevel-management-unstable-v1.xml',
   wayland_protocols_datadir + '/stable/xdg-shell/xdg-shell.xml',
   wayland_protocols_datadir + '/unstable/xdg-output/xdg-output-unstable-v1.xml',
   wayland_protocols_datadir + '/staging/xdg-activation/xdg-activation-v1.xml',
@@ -209,6 +210,7 @@ fuzzel = executable(
   'stride.h',
   'uri.c', 'uri.h',
   'wayland.c', 'wayland.h',
+  'window-switch.c', 'window-switch.h',
   'xdg.c', 'xdg.h',
   'xmalloc.c', 'xmalloc.h',
   'xsnprintf.c', 'xsnprintf.h',

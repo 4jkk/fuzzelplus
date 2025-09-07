@@ -425,6 +425,38 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	Boolean. Enable mouse input.
 	Default: _yes_.
 
+*window-format*
+	Format string for window switching mode. This controls how window
+	entries are displayed when using the *--switch-window* command line
+	option. The format string supports placeholder substitution with
+	optional formatting.
+
+	Supported placeholders:
+		- *{app_id}* - The application ID of the window
+		- *{title}* - The window title
+
+	The placeholders may optionally provide a format string inspired by
+	Rust's std::fmt. The syntax is *{<placeholder>:<fmt_str><clipped_str>}*.
+
+	Format string syntax:
+		- *{placeholder:{:align width.precision}}* - Full format specification
+		- *align* can be *<* (left), *>* (right), or *^* (center)
+		- *width* specifies minimum field width (padded with spaces)
+		- *precision* specifies maximum field width (truncated if longer)
+
+	Clipped string syntax:
+		- *{placeholder}clipped_str* - String to append when truncation occurs
+		- The clipped string only appears if the field was actually truncated
+		- Common examples: *...*, *…*, *[...]*, etc.
+
+	Examples:
+		- *{app_id:{:>10.10}}* - app_id right-aligned in exactly 10 characters
+		- *{app_id:{:.10}...}* - app_id truncated at 10 chars with "..." if truncated
+		- *{app_id:{:<15}} | {title:{:^50.50}}* - left-aligned app_id (15 chars),
+		  center-aligned title (50 chars)
+
+	Default: _{app_id:{:<15.15}} {title:{:<55.55}...}_.
+
 # SECTION: colors
 
 All color values are in RGBA.

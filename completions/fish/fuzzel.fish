@@ -77,6 +77,8 @@ complete -c fuzzel -x      -l match-workers                                     
 complete -c fuzzel -x      -l delayed-filter-ms                                                                 -d "time in milliseconds to delay refiltering when there are lots of matches"
 complete -c fuzzel -x      -l delayed-filter-limit                                                              -d "switch to delayed refiltering when there are more matches than this"
 complete -c fuzzel -x      -l scaling-filter     -a "none nearest bilinear box linear cubic lanczos2 lanczos3 lanczos3-stretched" -d "filter to use when down scaling PNGs"
+complete -c fuzzel         -l switch-window                                                                     -d "window switching mode; shows a list of all open windows"
+complete -c fuzzel -x      -l window-format                                                                     -d "format string for displaying window entries in window switching mode"
 complete -c fuzzel    -s d -l dmenu                                                                             -d "dmenu compatibility mode; entries are read from stdin, newline separated"
 complete -c fuzzel         -l dmenu0                                                                            -d "dmenu compatibility mode; entries are read from stdin, NUL separated"
 complete -c fuzzel         -l index                                                                             -d "print selected entry's index instead of its text (dmenu mode only)"

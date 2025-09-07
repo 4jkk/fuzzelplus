@@ -80,7 +80,9 @@ _arguments \
     '--log-no-syslog[disable syslog logging]' \
     '--no-mouse[disable mouse input]' \
     '--print-timing-info[print timing information, to help debug performance issues]' \
-    '--scaling-filter[filter to use when down scaling PNGs]:scaling-filter:(none nearest bilinear box linear cubic lanczos2 lanczos3 lanczos3-stretched)'
+    '--scaling-filter[filter to use when down scaling PNGs]:scaling-filter:(none nearest bilinear box linear cubic lanczos2 lanczos3 lanczos3-stretched)' \
+    '--switch-window[window switching mode; shows a list of all open windows]' \
+    '--window-format[format string for displaying window entries in window switching mode]:():'
 
 case "${state}" in
     fonts)

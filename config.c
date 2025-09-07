@@ -1138,6 +1138,24 @@ parse_section_dmenu(struct context *ctx)
 }
 
 static bool
+parse_section_window_switch(struct context *ctx)
+{
+    struct config *conf = ctx->conf;
+    const char *key = ctx->key;
+
+    if (strcmp(key, "format") == 0) {
+        free(conf->window_switch.format_string);
+        conf->window_switch.format_string = xstrdup(ctx->value);
+        return true;
+    }
+
+    else
+        LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
+
+    return false;
+}
+
+static bool
 parse_section_key_bindings(struct context *ctx)
 {
     for (int action = 0; action < ALEN(binding_action_map); action++) {
@@ -1162,6 +1180,7 @@ enum section {
     SECTION_COLORS,
     SECTION_BORDER,
     SECTION_DMENU,
+    SECTION_WINDOW_SWITCH,
     SECTION_KEY_BINDINGS,
     SECTION_COUNT,
 };
@@ -1177,6 +1196,7 @@ static const struct {
     [SECTION_COLORS] =       {&parse_section_colors, "colors"},
     [SECTION_BORDER] =       {&parse_section_border, "border"},
     [SECTION_DMENU] =        {&parse_section_dmenu, "dmenu"},
+    [SECTION_WINDOW_SWITCH] = {&parse_section_window_switch, "window-switch"},
     [SECTION_KEY_BINDINGS] = {&parse_section_key_bindings, "key-bindings"},
 };
 
@@ -1665,6 +1685,10 @@ config_load(struct config *conf, const char *conf_path,
             .with_nth_format = NULL,
             .accept_nth_format = NULL,
         },
+        .window_switch = {
+            .enabled = false,
+            .format_string = xstrdup("{app_id:{:<15.15}} {title:{:<55.55}...}"),
+        },
         .anchor = ANCHOR_CENTER,
         .margin = {
             .x = 0,
@@ -1782,6 +1806,7 @@ config_free(struct config *conf)
     free(conf->cache_path);
     free(conf->dmenu.with_nth_format);
     free(conf->dmenu.accept_nth_format);
+    free(conf->window_switch.format_string);
     free_key_binding_list(&conf->key_bindings);
 }
 
