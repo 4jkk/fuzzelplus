@@ -615,9 +615,6 @@ populate_apps(void *_ctx)
                 return -1;
             }
 
-            /* Wait a bit for initial window list to populate */
-            wl_display_roundtrip(wayl_get_display(ctx->wayl));
-
             /* Convert windows to applications format */
             struct application_list *window_apps = window_switch_to_applications(
                 window_switch, conf->window_switch.format_string);
