@@ -170,6 +170,7 @@ struct config {
         char *with_nth_format;
         char *accept_nth_format;
         char *match_nth_format;
+        char32_t *message;
     } dmenu;
 
     enum anchors anchor;

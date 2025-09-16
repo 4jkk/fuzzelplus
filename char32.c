@@ -85,6 +85,20 @@ c32chr(const char32_t *s, char32_t c)
 }
 
 size_t
+c32cntchr(const char32_t *s, char32_t c)
+{
+    size_t i = 0;
+    char32_t *pch=c32chr(s, c);
+
+    while (pch!=NULL) {
+        i++;
+        pch=c32chr(pch+1, c);
+    }
+
+    return i;
+}
+
+size_t
 mbsntoc32(char32_t *dst, const char *src, size_t nms, size_t len)
 {
     mbstate_t ps = {0};

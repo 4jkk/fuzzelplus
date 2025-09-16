@@ -65,6 +65,7 @@ struct render {
 
     /* Cached fcft text runs */
     struct fcft_text_run *prompt_text_run;
+    struct fcft_text_run *message_text_run;
     struct fcft_text_run *placeholder_text_run;
 
     /* Cached selection corners */
@@ -95,6 +96,7 @@ struct render {
     unsigned selection_border_radius;
     unsigned row_height;
     unsigned icon_height;
+    unsigned message_height;
 
     unsigned input_glyph_offset; /* At which glyph to start rendering input */
 
@@ -551,6 +553,122 @@ adjust_input_glyph_offset(struct render *render, const struct prompt *prompt,
 }
 
 void
+render_message(struct render *render, struct buffer *buf)
+{
+    if (!render->conf->dmenu.message) return;
+
+    struct fcft_font *font = render->font;
+    assert(font != NULL);
+
+    const char32_t *message = render->conf->dmenu.message;
+    size_t message_len = c32len(message);
+
+    const enum fcft_subpixel subpixel =
+        (render->conf->colors.background.a == 1. &&
+         render->conf->colors.selection.a == 1.)
+        ? render->subpixel : FCFT_SUBPIXEL_NONE;
+
+
+    int x = render->border_size + render->x_margin;
+    int y = render->border_size + render->y_margin + render_baseline(render);
+
+    /* Erase background */
+    pixman_color_t bg = render->pix_background_color;
+    //pixman_color_t bg = (pixman_color_t){0xffff, 0, 0, 0xffff};
+    pixman_image_fill_rectangles(
+        PIXMAN_OP_SRC, buf->pix[0], &bg, 1,
+        &(pixman_rectangle16_t){
+            render->border_size + render->x_margin - render->x_margin / 3,
+            render->border_size + render->y_margin,
+            buf->width - 2 * (render->border_size + render->x_margin - render->x_margin / 3),
+            render->message_height});
+
+    const int max_x =
+        buf->width - render->border_size - render->x_margin;
+
+    struct fcft_text_run *message_run = render->message_text_run;
+
+    if (fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING) {
+        if (message_run == NULL) {
+            message_run = fcft_rasterize_text_run_utf32(
+                font, message_len, message, subpixel);
+        }
+    }
+
+    if (message_run != NULL) {
+        for (size_t i = 0; i < message_run->count; i++) {
+            const struct fcft_glyph *glyph = message_run->glyphs[i];
+            if (glyph->cp == U'\n') {
+                x = render->border_size + render->x_margin;
+                y += render->row_height;
+                continue;
+            }
+            const int pixels_needed = max(glyph->x + glyph->width, glyph->advance.x);
+
+            if (x + pixels_needed > max_x) {
+                const struct fcft_glyph *ellipses =
+                    fcft_rasterize_char_utf32(font, U'…', subpixel);
+
+                if (ellipses != NULL)
+                    render_glyph(buf->pix[0], ellipses, x, y, &render->pix_text_color);
+
+                goto out;
+            }
+
+            render_glyph(buf->pix[0], glyph, x, y, &render->pix_text_color);
+            x += glyph->advance.x;
+        }
+    } else {
+        char32_t prev = 0;
+        for (size_t i = 0; i < message_len; i++) {
+            const char32_t wc = message[i];
+            if (wc == U'\n') {
+                x = render->border_size + render->x_margin;
+                y += render->row_height;
+                continue;
+            }
+
+            const struct fcft_glyph *glyph = fcft_rasterize_char_utf32(font, wc, subpixel);
+
+            if (glyph == NULL) {
+                prev = wc;
+                continue;
+            }
+
+            long x_kern;
+            fcft_kerning(font, prev, wc, &x_kern, NULL);
+
+            x += x_kern;
+
+            const int pixels_needed = max(glyph->x + glyph->width, glyph->advance.x);
+            if (x + pixels_needed > max_x) {
+                const struct fcft_glyph *ellipses =
+                    fcft_rasterize_char_utf32(font, U'…', subpixel);
+
+                if (ellipses != NULL)
+                    render_glyph(buf->pix[0], ellipses, x, y, &render->pix_text_color);
+
+                goto out;
+            }
+
+            render_glyph(
+                buf->pix[0], glyph, x, y, &render->pix_text_color);
+            x += glyph->advance.x;
+            x += pt_or_px_as_pixels(render, &render->conf->letter_spacing);
+
+            prev = wc;
+        }
+    }
+
+
+out:
+    if (render->message_text_run == NULL)
+        render->message_text_run = message_run;
+    else if (message_run != render->message_text_run)
+        fcft_text_run_destroy(message_run);
+}
+
+void
 render_prompt(struct render *render, struct buffer *buf,
               const struct prompt *prompt, const struct matches *matches)
 {
@@ -594,7 +712,7 @@ render_prompt(struct render *render, struct buffer *buf,
     }
 
     int x = render->border_size + render->x_margin;
-    int y = render->border_size + render->y_margin + render_baseline(render);
+    int y = render->border_size + render->y_margin + render_baseline(render) + render->message_height;
 
     /* Erase background */
     pixman_color_t bg = render->pix_background_color;
@@ -603,7 +721,7 @@ render_prompt(struct render *render, struct buffer *buf,
         PIXMAN_OP_SRC, buf->pix[0], &bg, 1,
         &(pixman_rectangle16_t){
             render->border_size + render->x_margin - render->x_margin / 3,
-            render->border_size + render->y_margin,
+            render->border_size + render->y_margin + render->message_height,
             buf->width - 2 * (render->border_size + render->x_margin - render->x_margin / 3),
             render->row_height});
 
@@ -1398,7 +1516,8 @@ first_row_y(const struct render *render)
     return (render->border_size +
             render->y_margin +
             (render->conf->hide_prompt ? 0 : render->row_height) +
-            (render->conf->hide_prompt ? 0 : render->inner_pad));
+            (render->conf->hide_prompt ? 0 : render->inner_pad) +
+            render->message_height);
 }
 
 static void
@@ -1819,12 +1938,15 @@ render_resized(struct render *render, int *new_width, int *new_height)
 
     const unsigned icon_height = max(0, row_height - font->descent);
 
+    const unsigned message_lines = render->conf->dmenu.message == NULL ? 0 : 1 + c32cntchr(render->conf->dmenu.message, U'\n');
+
     const unsigned height =
         border_size +                        /* Top border */
         y_margin +
         (render->conf->hide_prompt ? 0 : row_height) +          /* The prompt (hidden if hide_prompt) */
         (render->conf->hide_prompt ? 0 : inner_pad) +           /* Padding between prompt and matches (only if prompt shown) */
         render->conf->lines * row_height +   /* Matches */
+        message_lines * row_height +         /* Message */
         y_margin +
         border_size;                         /* Bottom border */
 
@@ -1851,6 +1973,7 @@ render_resized(struct render *render, int *new_width, int *new_height)
     render->selection_border_radius = selection_border_radius;
     render->row_height = row_height;
     render->icon_height = icon_height;
+    render->message_height = message_lines * render->row_height;
 
     if (new_width != NULL)
         *new_width = width;

@@ -448,6 +448,7 @@ print_usage(const char *prog_name)
            "                                 --accept-nth\n"
            "     --only-match                do not allow custom entries, only return a\n"
            "                                 selected item\n"
+           "     --mesg                      show informational message above the prompt\n"
            "  -R,--no-run-if-empty           exit immediately without showing UI if stdin\n"
            "                                 is empty (dmenu mode only)\n"
            "     --log-level={info|warning|error|none}\n"
@@ -460,6 +461,7 @@ print_usage(const char *prog_name)
            "                                 performance issues\n"
            "     --no-mouse                  disable mouse input\n"
            "  -v,--version                   show the version number and quit\n");
+
     printf("\n");
     printf("All colors are RGBA - i.e. 8-digit hex values, without prefix.\n");
 }
@@ -860,6 +862,7 @@ main(int argc, char *const *argv)
     #define OPT_DMENU_NTH_DELIM              308
     #define OPT_DMENU_MATCH_NTH              309
     #define OPT_DMENU_ONLY_MATCH             310
+    #define OPT_DMENU_MESSAGE                311
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -941,6 +944,7 @@ main(int argc, char *const *argv)
         {"accept-nth",           required_argument, 0, OPT_DMENU_ACCEPT_NTH},
         {"match-nth",            required_argument, 0, OPT_DMENU_MATCH_NTH},
         {"only-match",           no_argument,       0, OPT_DMENU_ONLY_MATCH},
+        {"mesg",                 required_argument, 0, OPT_DMENU_MESSAGE},
 
         /* Misc */
         {"log-level",            required_argument, 0, OPT_LOG_LEVEL},
@@ -1804,6 +1808,17 @@ main(int argc, char *const *argv)
             cmdline_overrides.dmenu_only_match_set = true;
             break;
 
+        case OPT_DMENU_MESSAGE:
+            free(cmdline_overrides.conf.dmenu.message);
+            cmdline_overrides.conf.dmenu.message = ambstoc32(optarg);
+
+            if (cmdline_overrides.conf.dmenu.message == NULL) {
+                fprintf(stderr, "%s: invalid dmenu message\n", optarg);
+                return EXIT_FAILURE;
+            }
+
+            break;
+
         case OPT_LOG_LEVEL: {
             int lvl = log_level_from_string(optarg);
             if (lvl < 0) {
@@ -2131,6 +2146,10 @@ main(int argc, char *const *argv)
     }
     if (cmdline_overrides.dmenu_only_match_set)
         conf.dmenu.only_match = cmdline_overrides.conf.dmenu.only_match;
+    if (cmdline_overrides.conf.dmenu.message != NULL) {
+        free(conf.dmenu.message);
+        conf.dmenu.message = cmdline_overrides.conf.dmenu.message;
+    }
     if (cmdline_overrides.conf.list_executables_in_path)
         conf.list_executables_in_path = cmdline_overrides.conf.list_executables_in_path;
     if (cmdline_overrides.render_workers_set)

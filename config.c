@@ -1131,6 +1131,9 @@ parse_section_dmenu(struct context *ctx)
     else if (strcmp(key, "exit-immediately-if-empty") == 0)
         return value_to_bool(ctx, &conf->dmenu.exit_immediately_if_empty);
 
+    else if (strcmp(key, "message") == 0)
+        return value_to_wchars(ctx, &conf->dmenu.message);
+
     else
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
 
@@ -1664,6 +1667,7 @@ config_load(struct config *conf, const char *conf_path,
             .nth_delim = '\t',
             .with_nth_format = NULL,
             .accept_nth_format = NULL,
+            .message = NULL,
         },
         .anchor = ANCHOR_CENTER,
         .margin = {
