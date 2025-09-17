@@ -449,6 +449,8 @@ print_usage(const char *prog_name)
            "     --only-match                do not allow custom entries, only return a\n"
            "                                 selected item\n"
            "     --mesg                      show informational message above the prompt\n"
+           "     --mesg-mode=truncate|wrap|expand how to deal with message lines longer than\n"
+           "                                 the ui (truncate)\n"
            "  -R,--no-run-if-empty           exit immediately without showing UI if stdin\n"
            "                                 is empty (dmenu mode only)\n"
            "     --log-level={info|warning|error|none}\n"
@@ -863,6 +865,7 @@ main(int argc, char *const *argv)
     #define OPT_DMENU_MATCH_NTH              309
     #define OPT_DMENU_ONLY_MATCH             310
     #define OPT_DMENU_MESSAGE                311
+    #define OPT_DMENU_MESSAGE_MODE           312
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -945,6 +948,7 @@ main(int argc, char *const *argv)
         {"match-nth",            required_argument, 0, OPT_DMENU_MATCH_NTH},
         {"only-match",           no_argument,       0, OPT_DMENU_ONLY_MATCH},
         {"mesg",                 required_argument, 0, OPT_DMENU_MESSAGE},
+        {"mesg-mode",            required_argument, 0, OPT_DMENU_MESSAGE_MODE},
 
         /* Misc */
         {"log-level",            required_argument, 0, OPT_LOG_LEVEL},
@@ -1013,6 +1017,7 @@ main(int argc, char *const *argv)
         bool dmenu_accept_nth_set:1;
         bool dmenu_match_nth_set:1;
         bool dmenu_only_match_set:1;
+        bool dmenu_mesg_mode_set:1;
         bool layer_set:1;
         bool keyboard_focus_set:1;
         bool no_exit_on_keyboard_focus_loss_set:1;
@@ -1819,6 +1824,21 @@ main(int argc, char *const *argv)
 
             break;
 
+        case OPT_DMENU_MESSAGE_MODE:
+            if (strcmp(optarg, "truncate") == 0)
+                cmdline_overrides.conf.dmenu.message_mode = MESSAGE_MODE_TRUNCATE;
+            else if (strcmp(optarg, "wrap") == 0)
+                cmdline_overrides.conf.dmenu.message_mode = MESSAGE_MODE_WRAP;
+            else if (strcmp(optarg, "expand") == 0)
+                cmdline_overrides.conf.dmenu.message_mode = MESSAGE_MODE_EXPAND;
+            else {
+                fprintf(stderr, "%s: invalid mesg-mode. Must be 'truncate', 'wrap' or 'expand'\n", optarg);
+                return EXIT_FAILURE;
+            }
+
+            cmdline_overrides.dmenu_mesg_mode_set = true;
+            break;
+
         case OPT_LOG_LEVEL: {
             int lvl = log_level_from_string(optarg);
             if (lvl < 0) {
@@ -2150,6 +2170,8 @@ main(int argc, char *const *argv)
         free(conf.dmenu.message);
         conf.dmenu.message = cmdline_overrides.conf.dmenu.message;
     }
+    if (cmdline_overrides.dmenu_mesg_mode_set)
+        conf.dmenu.message_mode = cmdline_overrides.conf.dmenu.message_mode;
     if (cmdline_overrides.conf.list_executables_in_path)
         conf.list_executables_in_path = cmdline_overrides.conf.list_executables_in_path;
     if (cmdline_overrides.render_workers_set)

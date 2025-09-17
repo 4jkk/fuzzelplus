@@ -1134,6 +1134,16 @@ parse_section_dmenu(struct context *ctx)
     else if (strcmp(key, "message") == 0)
         return value_to_wchars(ctx, &conf->dmenu.message);
 
+    else if (strcmp(key, "message-mode") == 0) {
+        _Static_assert(sizeof(conf->dmenu.message_mode) == sizeof(int),
+                       "enum is not 32-bit");
+
+        return value_to_enum(
+            ctx,
+            (const char *[]){"truncate", "wrap", "expand", NULL},
+            (int *)&conf->dmenu.message_mode);
+    }
+
     else
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
 
@@ -1787,6 +1797,7 @@ config_free(struct config *conf)
     free(conf->dmenu.with_nth_format);
     free(conf->dmenu.accept_nth_format);
     free(conf->dmenu.match_nth_format);
+    free(conf->dmenu.message);
     free_key_binding_list(&conf->key_bindings);
 }
 

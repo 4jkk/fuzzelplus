@@ -553,6 +553,75 @@ adjust_input_glyph_offset(struct render *render, const struct prompt *prompt,
 }
 
 void
+current_line_boundaries(char32_t* remaining_message, const struct config *conf,
+                        char32_t** current_line_end, char32_t** next_line_start)
+{
+    char32_t* next_linebreak = c32chr(remaining_message, U'\n');
+    // Unless word wrapping, the current line boundaries are the whole line
+    // Truncating will be handled in rendering
+    // If the line is shorter than the configured width, we can also immediately return
+    if (conf->dmenu.message_mode != MESSAGE_MODE_WRAP
+        || (next_linebreak != NULL && next_linebreak - remaining_message <= conf->chars)
+        || (next_linebreak == NULL && c32len(remaining_message) <= conf->chars)
+    ) {
+        if (next_linebreak) {
+            *current_line_end = next_linebreak-1;
+            // Do not skip leading spaces after a linebreak,
+            // as intentional spaces likely exist for formatting purposes.
+            *next_line_start = next_linebreak+1;
+        } else {
+            *current_line_end = remaining_message + c32len(remaining_message) - 1;
+            *next_line_start = NULL;
+        }
+        goto strip_trailing_spaces;
+    }
+
+    // Wrapping logic
+    char32_t* last_space = NULL;
+    *current_line_end = remaining_message;
+    while (*current_line_end - remaining_message < conf->chars) {
+        if (**current_line_end == U' ') {
+            last_space = *current_line_end;
+        }
+        (*current_line_end)++;
+    }
+
+    // If there is no space in the line, all we can really (without
+    // changing the string) is stop at the end character and more to
+    // the next line.
+    // Might be nice to have a configurable "wrapping character" option
+    // later.
+    // current_line_end is already conf->chars characters after remaining_message
+    // here due to the space-searching loop
+    if (last_space == NULL) {
+        // Bumped one beyond conf->chars before the loop ends
+        (*current_line_end)--;
+        *next_line_start = *current_line_end + 1;
+        // Consistency. Should never happen here, but good to check.
+        goto strip_leading_spaces;
+    }
+
+
+    // If there is a space in the line, break on it.
+    *current_line_end = last_space-1;
+    *next_line_start = last_space+1;
+
+strip_leading_spaces:
+    while (*next_line_start != NULL && c32len(*next_line_start) > 0 && **next_line_start == U' ')
+        (*next_line_start)++;
+    if (c32len(*next_line_start) == 0)
+        *next_line_start = NULL;
+
+strip_trailing_spaces:
+    while (
+        *current_line_end != NULL
+        && *current_line_end > remaining_message
+        && **current_line_end == U' ')
+        (*current_line_end)--;
+
+}
+
+void
 render_message(struct render *render, struct buffer *buf)
 {
     if (!render->conf->dmenu.message) return;
@@ -564,8 +633,7 @@ render_message(struct render *render, struct buffer *buf)
     size_t message_len = c32len(message);
 
     const enum fcft_subpixel subpixel =
-        (render->conf->colors.background.a == 1. &&
-         render->conf->colors.selection.a == 1.)
+        render->conf->colors.background.a == 1.
         ? render->subpixel : FCFT_SUBPIXEL_NONE;
 
 
@@ -588,80 +656,87 @@ render_message(struct render *render, struct buffer *buf)
 
     struct fcft_text_run *message_run = render->message_text_run;
 
-    if (fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING) {
-        if (message_run == NULL) {
-            message_run = fcft_rasterize_text_run_utf32(
-                font, message_len, message, subpixel);
-        }
+    if (fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING && message_run == NULL) {
+        message_run = fcft_rasterize_text_run_utf32(
+            font, message_len, message, subpixel);
     }
 
-    if (message_run != NULL) {
-        for (size_t i = 0; i < message_run->count; i++) {
-            const struct fcft_glyph *glyph = message_run->glyphs[i];
-            if (glyph->cp == U'\n') {
-                x = render->border_size + render->x_margin;
-                y += render->row_height;
-                continue;
+    char32_t* current_pos = render->conf->dmenu.message;
+    char32_t* current_line_end = NULL;
+    char32_t* next_line_start = NULL;
+    while (current_pos != NULL) {
+        current_line_boundaries(current_pos, render->conf,
+                                &current_line_end, &next_line_start);
+
+        if (message_run != NULL) {
+            for (; current_pos <= current_line_end; current_pos++) {
+                int i = current_pos - render->conf->dmenu.message;
+                const struct fcft_glyph *glyph = message_run->glyphs[i];
+                const int pixels_needed = max(glyph->x + glyph->width, glyph->advance.x);
+
+                if (x + pixels_needed > max_x) {
+                    const struct fcft_glyph *ellipses =
+                        fcft_rasterize_char_utf32(font, U'…', subpixel);
+
+                    if (ellipses != NULL)
+                        render_glyph(buf->pix[0], ellipses, x, y, &render->pix_text_color);
+
+                    goto next_line;
+                }
+
+                render_glyph(buf->pix[0], glyph, x, y, &render->pix_text_color);
+                x += glyph->advance.x;
             }
-            const int pixels_needed = max(glyph->x + glyph->width, glyph->advance.x);
+        } else {
+            char32_t prev = 0;
+            for (; current_pos <= current_line_end; current_pos++) {
+                int i = current_pos - render->conf->dmenu.message;
+                const char32_t wc = message[i];
+                if (wc == U'\n') {
+                    x = render->border_size + render->x_margin;
+                    y += render->row_height;
+                    continue;
+                }
 
-            if (x + pixels_needed > max_x) {
-                const struct fcft_glyph *ellipses =
-                    fcft_rasterize_char_utf32(font, U'…', subpixel);
+                const struct fcft_glyph *glyph = fcft_rasterize_char_utf32(font, wc, subpixel);
 
-                if (ellipses != NULL)
-                    render_glyph(buf->pix[0], ellipses, x, y, &render->pix_text_color);
+                if (glyph == NULL) {
+                    prev = wc;
+                    continue;
+                }
 
-                goto out;
-            }
+                long x_kern;
+                fcft_kerning(font, prev, wc, &x_kern, NULL);
 
-            render_glyph(buf->pix[0], glyph, x, y, &render->pix_text_color);
-            x += glyph->advance.x;
-        }
-    } else {
-        char32_t prev = 0;
-        for (size_t i = 0; i < message_len; i++) {
-            const char32_t wc = message[i];
-            if (wc == U'\n') {
-                x = render->border_size + render->x_margin;
-                y += render->row_height;
-                continue;
-            }
+                x += x_kern;
 
-            const struct fcft_glyph *glyph = fcft_rasterize_char_utf32(font, wc, subpixel);
+                const int pixels_needed = max(glyph->x + glyph->width, glyph->advance.x);
+                if (x + pixels_needed > max_x) {
+                    const struct fcft_glyph *ellipses =
+                        fcft_rasterize_char_utf32(font, U'…', subpixel);
 
-            if (glyph == NULL) {
+                    if (ellipses != NULL)
+                        render_glyph(buf->pix[0], ellipses, x, y, &render->pix_text_color);
+
+                    goto next_line;
+                }
+
+                render_glyph(
+                    buf->pix[0], glyph, x, y, &render->pix_text_color);
+                x += glyph->advance.x;
+                x += pt_or_px_as_pixels(render, &render->conf->letter_spacing);
+
                 prev = wc;
-                continue;
             }
-
-            long x_kern;
-            fcft_kerning(font, prev, wc, &x_kern, NULL);
-
-            x += x_kern;
-
-            const int pixels_needed = max(glyph->x + glyph->width, glyph->advance.x);
-            if (x + pixels_needed > max_x) {
-                const struct fcft_glyph *ellipses =
-                    fcft_rasterize_char_utf32(font, U'…', subpixel);
-
-                if (ellipses != NULL)
-                    render_glyph(buf->pix[0], ellipses, x, y, &render->pix_text_color);
-
-                goto out;
-            }
-
-            render_glyph(
-                buf->pix[0], glyph, x, y, &render->pix_text_color);
-            x += glyph->advance.x;
-            x += pt_or_px_as_pixels(render, &render->conf->letter_spacing);
-
-            prev = wc;
         }
+
+next_line:
+        current_pos = next_line_start;
+        x = render->border_size + render->x_margin;
+        y += render->row_height;
     }
 
 
-out:
     if (render->message_text_run == NULL)
         render->message_text_run = message_run;
     else if (message_run != render->message_text_run)
@@ -1938,7 +2013,24 @@ render_resized(struct render *render, int *new_width, int *new_height)
 
     const unsigned icon_height = max(0, row_height - font->descent);
 
-    const unsigned message_lines = render->conf->dmenu.message == NULL ? 0 : 1 + c32cntchr(render->conf->dmenu.message, U'\n');
+    unsigned message_lines = 0;
+    unsigned longest_message_line = 0;
+    if (render->conf->dmenu.message != NULL) {
+        char32_t* current_pos = render->conf->dmenu.message;
+        char32_t* current_line_end = NULL;
+        char32_t* next_line_start = NULL;
+        while (current_pos != NULL) {
+            message_lines++;
+            current_line_boundaries(current_pos, render->conf,
+                                    &current_line_end, &next_line_start);
+
+            if (render->conf->dmenu.message_mode == MESSAGE_MODE_EXPAND
+                && current_line_end + 1 - current_pos > longest_message_line) {
+                longest_message_line = current_line_end + 1 - current_pos;
+            }
+            current_pos = next_line_start;
+        }
+    }
 
     const unsigned height =
         border_size +                        /* Top border */
@@ -1956,7 +2048,7 @@ render_resized(struct render *render, int *new_width, int *new_height)
         (max((W->advance.x + pt_or_px_as_pixels(
                   render, &render->conf->letter_spacing)),
              0)
-         * render->conf->chars) +
+         * max(render->conf->chars, longest_message_line)) +
         x_margin +
         border_size;
 
@@ -2054,6 +2146,7 @@ render_destroy(struct render *render)
     tll_free(render->workers.queue);
 
     fcft_text_run_destroy(render->prompt_text_run);
+    fcft_text_run_destroy(render->message_text_run);
     fcft_text_run_destroy(render->placeholder_text_run);
 
     if (render->selection_corners != NULL)
@@ -2095,7 +2188,9 @@ void
 render_flush_text_run_cache(struct render *render)
 {
     fcft_text_run_destroy(render->prompt_text_run);
+    fcft_text_run_destroy(render->message_text_run);
     fcft_text_run_destroy(render->placeholder_text_run);
     render->prompt_text_run = NULL;
+    render->message_text_run = NULL;
     render->placeholder_text_run = NULL;
 }

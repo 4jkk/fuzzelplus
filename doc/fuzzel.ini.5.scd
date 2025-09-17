@@ -495,6 +495,22 @@ All color values are in RGBA.
 	open a window, and will not print anything on stdout) if there's
 	nothing on stdin. Default: _no_.
 
+*mesg*
+	String to display as a message above the prompt. Supports newlines.
+	For details on how long lines are treated, see *mesg-mode*.
+
+*mesg-mode*
+	One of *truncate*, *wrap*, and *expand*.
+
+	*truncate*: any line that's longer than *width* is truncated.
+
+	*wrap*: any line that is longer than *width* is wrapped to the
+	following line. Wraps on space boundaries if available, trimming
+	leading spaces caused by truncation. If no space is available,
+	the line is broken up after *width* characters.
+
+	*expand*: If the longest line in *mesg* is longer than *width*,
+	make the dialogue box wider to accomodate *mesg*.
 
 # SECTION: key-bindings
 

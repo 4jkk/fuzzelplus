@@ -560,6 +560,15 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 	The exception to this is the *execute-input* key binding, which
 	always executes/selects the input text.
 
+*--mesg*=_STRING_
+	Message to display above the prompt. Can contain some informational
+	message, or can be used for having your prompt be above the input
+	instead of in front.
+
+*--mesg-mode*=_truncate_|_wrap_|_expand_
+	How to handle lines in *--mesg* when they are longer than *--width*.
+	See *fuzzel.ini*(5) for details. The default is *truncate*.
+
 *-R*,*--no-run-if-empty*
 	Exit immediately, without showing the UI, if stdin is
 	empty. dmenu mode only.
