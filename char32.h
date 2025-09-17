@@ -14,7 +14,6 @@ char32_t *c32memcpy(char32_t *dest, const char32_t *src, size_t n);
 char32_t *c32cat(char32_t *dest, const char32_t *src);
 char32_t *c32dup(const char32_t *s);
 char32_t *c32chr(const char32_t *s, char32_t c);
-size_t   c32cntchr(const char32_t *s, char32_t c);
 
 size_t mbsntoc32(char32_t *dst, const char *src, size_t nms, size_t len);
 size_t mbstoc32(char32_t *dst, const char *src, size_t len);
