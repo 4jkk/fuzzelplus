@@ -38,6 +38,7 @@ _arguments \
     '(-P --inner-pad)'{-P,--inner-pad}'[vertical padding between prompt and matches, in pixels (0)]:()' \
     '(-b --background)'{-b,--background}'[background color (fdf6e3ff)]:background:()' \
     '(-t --text-color)'{-t,--text-color}'[text color (657b83ff)]:text-color:()' \
+    '--message-color[color of the message text (657b83ff)]:message-color:()' \
     '--prompt-color[color of the prompt text (586e75ff)]:prompt-color:()' \
     '--placeholder-color[color of the placeholder text (93a1a1ff)]:()' \
     '--input-color[color of the input string (657b83ff)]:input-color:()' \

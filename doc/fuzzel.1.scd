@@ -273,6 +273,9 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 *-t*,*--text-color*=_HEX_
 	Text color. See *COLORS*. Default: _657b83ff_.
 
+*--message-color*=_HEX_
+	Message color. See *COLORS*. Default: _657b83ff_.
+
 *--prompt-color*=_HEX_
 	Text (foreground) color of prompt character(s). See
 	*COLORS*. Default: _586e75ff_.

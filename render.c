@@ -79,6 +79,7 @@ struct render {
     pixman_color_t pix_background_color;
     pixman_color_t pix_border_color;
     pixman_color_t pix_text_color;
+    pixman_color_t pix_message_color;
     pixman_color_t pix_prompt_color;
     pixman_color_t pix_input_color;
     pixman_color_t pix_match_color;
@@ -671,7 +672,7 @@ render_message(struct render *render, struct buffer *buf)
                 int i = current_pos - render->conf->dmenu.message;
                 const struct fcft_glyph *glyph = message_run->glyphs[i];
 
-                render_glyph(buf->pix[0], glyph, x, y, &render->pix_text_color);
+                render_glyph(buf->pix[0], glyph, x, y, &render->pix_message_color);
                 x += glyph->advance.x;
             }
         } else {
@@ -698,7 +699,7 @@ render_message(struct render *render, struct buffer *buf)
                 x += x_kern;
 
                 render_glyph(
-                    buf->pix[0], glyph, x, y, &render->pix_text_color);
+                    buf->pix[0], glyph, x, y, &render->pix_message_color);
                 x += glyph->advance.x;
                 x += pt_or_px_as_pixels(render, &render->conf->letter_spacing);
 
@@ -1944,6 +1945,7 @@ render_initialize_colors(struct render *render, const struct config *conf,
     render->pix_background_color = rgba2pixman(gamma_correct, conf->colors.background);
     render->pix_border_color = rgba2pixman(gamma_correct, conf->colors.border);
     render->pix_text_color = rgba2pixman(gamma_correct, conf->colors.text);
+    render->pix_message_color = rgba2pixman(gamma_correct, conf->colors.message);
     render->pix_prompt_color = rgba2pixman(gamma_correct, conf->colors.prompt);
     render->pix_input_color = rgba2pixman(gamma_correct, conf->colors.input);
     render->pix_match_color = rgba2pixman(gamma_correct, conf->colors.match);

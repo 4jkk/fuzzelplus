@@ -436,6 +436,10 @@ All color values are in RGBA.
 	Text (foreground) color of unselected entries. Default:
 	_657b83ff_.
 
+*message*
+	Text (foreground) color of the message string. Default:
+	_657b83ff_.
+
 *prompt*
 	Text (foreground) color of prompt character(s). Default:
 	_586e75ff_.

@@ -390,6 +390,7 @@ print_usage(const char *prog_name)
            "                                 in pixels (0)\n"
            "  -b,--background-color=HEX      background color (fdf6e3ff)\n"
            "  -t,--text-color=HEX            text color of matched entries (657b83ff)\n"
+           "     --message-color=HEX         text color of the message (657b83ff)\n"
            "     --prompt-color=HEX          text color of the prompt (586e75ff)\n"
            "     --placeholder-color=HEX     text color of the placeholder text (93a1a1)\n"
            "     --input-color=HEX           text color of the input string (657b83ff)\n"
@@ -866,6 +867,7 @@ main(int argc, char *const *argv)
     #define OPT_DMENU_ONLY_MATCH             310
     #define OPT_DMENU_MESSAGE                311
     #define OPT_DMENU_MESSAGE_MODE           312
+    #define OPT_MESSAGE_COLOR                313
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -897,6 +899,7 @@ main(int argc, char *const *argv)
         {"inner-pad",            required_argument, 0, 'P'},
         {"background-color",     required_argument, 0, 'b'},
         {"text-color",           required_argument, 0, 't'},
+        {"message-color",        required_argument, 0, OPT_MESSAGE_COLOR},
         {"prompt-color",         required_argument, 0, OPT_PROMPT_COLOR},
         {"placeholder-color",    required_argument, 0, OPT_PLACEHOLDER_COLOR},
         {"input-color",          required_argument, 0, OPT_INPUT_COLOR},
@@ -989,6 +992,7 @@ main(int argc, char *const *argv)
         bool pad_inner_set:1;
         bool background_color_set:1;
         bool text_color_set:1;
+        bool message_color_set:1;
         bool prompt_color_set:1;
         bool input_color_set:1;
         bool match_color_set:1;
@@ -1400,6 +1404,23 @@ main(int argc, char *const *argv)
             }
             cmdline_overrides.conf.colors.text = conf_hex_to_rgba(text_color);
             cmdline_overrides.text_color_set = true;
+            break;
+        }
+
+        case OPT_MESSAGE_COLOR: {
+            const char *clr_start = optarg;
+            if (clr_start[0] == '#')
+                clr_start++;
+
+            errno = 0;
+            char *end = NULL;
+            uint32_t message_color = strtoul(clr_start, &end, 16);
+            if (errno != 0 || end == NULL || *end != '\0' || (end - clr_start) != 8) {
+                fprintf(stderr, "message-color: %s: invalid color\n", optarg);
+                return EXIT_FAILURE;
+            }
+            cmdline_overrides.conf.colors.message = conf_hex_to_rgba(message_color);
+            cmdline_overrides.message_color_set = true;
             break;
         }
 
@@ -2094,6 +2115,8 @@ main(int argc, char *const *argv)
         conf.colors.background = cmdline_overrides.conf.colors.background;
     if (cmdline_overrides.text_color_set)
         conf.colors.text = cmdline_overrides.conf.colors.text;
+    if (cmdline_overrides.message_color_set)
+        conf.colors.message = cmdline_overrides.conf.colors.message;
     if (cmdline_overrides.prompt_color_set)
         conf.colors.prompt = cmdline_overrides.conf.colors.prompt;
     if (cmdline_overrides.placeholder_color_set)
