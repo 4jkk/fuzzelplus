@@ -565,9 +565,9 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 	message, or can be used for having your prompt be above the input
 	instead of in front.
 
-*--mesg-mode*=_truncate_|_wrap_|_expand_
+*--mesg-mode*=_wrap_|_expand_
 	How to handle lines in *--mesg* when they are longer than *--width*.
-	See *fuzzel.ini*(5) for details. The default is *truncate*.
+	See *fuzzel.ini*(5) for details. The default is *wrap*.
 
 *-R*,*--no-run-if-empty*
 	Exit immediately, without showing the UI, if stdin is

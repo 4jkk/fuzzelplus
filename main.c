@@ -449,8 +449,8 @@ print_usage(const char *prog_name)
            "     --only-match                do not allow custom entries, only return a\n"
            "                                 selected item\n"
            "     --mesg                      show informational message above the prompt\n"
-           "     --mesg-mode=truncate|wrap|expand how to deal with message lines longer than\n"
-           "                                 the ui (truncate)\n"
+           "     --mesg-mode=wrap|expand     how to deal with message lines longer than\n"
+           "                                 the ui (wrap)\n"
            "  -R,--no-run-if-empty           exit immediately without showing UI if stdin\n"
            "                                 is empty (dmenu mode only)\n"
            "     --log-level={info|warning|error|none}\n"
@@ -1825,14 +1825,12 @@ main(int argc, char *const *argv)
             break;
 
         case OPT_DMENU_MESSAGE_MODE:
-            if (strcmp(optarg, "truncate") == 0)
-                cmdline_overrides.conf.dmenu.message_mode = MESSAGE_MODE_TRUNCATE;
-            else if (strcmp(optarg, "wrap") == 0)
+            if (strcmp(optarg, "wrap") == 0)
                 cmdline_overrides.conf.dmenu.message_mode = MESSAGE_MODE_WRAP;
             else if (strcmp(optarg, "expand") == 0)
                 cmdline_overrides.conf.dmenu.message_mode = MESSAGE_MODE_EXPAND;
             else {
-                fprintf(stderr, "%s: invalid mesg-mode. Must be 'truncate', 'wrap' or 'expand'\n", optarg);
+                fprintf(stderr, "%s: invalid mesg-mode. Must be 'wrap' or 'expand'\n", optarg);
                 return EXIT_FAILURE;
             }
 

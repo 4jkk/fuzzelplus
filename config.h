@@ -36,7 +36,6 @@ enum match_mode {
 };
 
 enum message_mode {
-    MESSAGE_MODE_TRUNCATE,
     MESSAGE_MODE_WRAP,
     MESSAGE_MODE_EXPAND,
 };

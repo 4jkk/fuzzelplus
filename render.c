@@ -558,7 +558,6 @@ current_line_boundaries(char32_t* remaining_message, const struct config *conf,
 {
     char32_t* next_linebreak = c32chr(remaining_message, U'\n');
     // Unless word wrapping, the current line boundaries are the whole line
-    // Truncating will be handled in rendering
     // If the line is shorter than the configured width, we can also immediately return
     if (conf->dmenu.message_mode != MESSAGE_MODE_WRAP
         || (next_linebreak != NULL && next_linebreak - remaining_message <= conf->chars)
@@ -651,9 +650,6 @@ render_message(struct render *render, struct buffer *buf)
             buf->width - 2 * (render->border_size + render->x_margin - render->x_margin / 3),
             render->message_height});
 
-    const int max_x =
-        buf->width - render->border_size - render->x_margin;
-
     struct fcft_text_run *message_run = render->message_text_run;
 
     if (fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING && message_run == NULL) {
@@ -672,17 +668,6 @@ render_message(struct render *render, struct buffer *buf)
             for (; current_pos <= current_line_end; current_pos++) {
                 int i = current_pos - render->conf->dmenu.message;
                 const struct fcft_glyph *glyph = message_run->glyphs[i];
-                const int pixels_needed = max(glyph->x + glyph->width, glyph->advance.x);
-
-                if (x + pixels_needed > max_x) {
-                    const struct fcft_glyph *ellipses =
-                        fcft_rasterize_char_utf32(font, U'…', subpixel);
-
-                    if (ellipses != NULL)
-                        render_glyph(buf->pix[0], ellipses, x, y, &render->pix_text_color);
-
-                    goto next_line;
-                }
 
                 render_glyph(buf->pix[0], glyph, x, y, &render->pix_text_color);
                 x += glyph->advance.x;
@@ -710,17 +695,6 @@ render_message(struct render *render, struct buffer *buf)
 
                 x += x_kern;
 
-                const int pixels_needed = max(glyph->x + glyph->width, glyph->advance.x);
-                if (x + pixels_needed > max_x) {
-                    const struct fcft_glyph *ellipses =
-                        fcft_rasterize_char_utf32(font, U'…', subpixel);
-
-                    if (ellipses != NULL)
-                        render_glyph(buf->pix[0], ellipses, x, y, &render->pix_text_color);
-
-                    goto next_line;
-                }
-
                 render_glyph(
                     buf->pix[0], glyph, x, y, &render->pix_text_color);
                 x += glyph->advance.x;
@@ -730,7 +704,6 @@ render_message(struct render *render, struct buffer *buf)
             }
         }
 
-next_line:
         current_pos = next_line_start;
         x = render->border_size + render->x_margin;
         y += render->row_height;

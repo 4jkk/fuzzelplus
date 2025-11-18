@@ -1140,7 +1140,7 @@ parse_section_dmenu(struct context *ctx)
 
         return value_to_enum(
             ctx,
-            (const char *[]){"truncate", "wrap", "expand", NULL},
+            (const char *[]){"wrap", "expand", NULL},
             (int *)&conf->dmenu.message_mode);
     }
 

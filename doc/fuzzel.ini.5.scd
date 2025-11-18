@@ -500,9 +500,7 @@ All color values are in RGBA.
 	For details on how long lines are treated, see *mesg-mode*.
 
 *mesg-mode*
-	One of *truncate*, *wrap*, and *expand*.
-
-	*truncate*: any line that's longer than *width* is truncated.
+	One of *wrap*, and *expand*.
 
 	*wrap*: any line that is longer than *width* is wrapped to the
 	following line. Wraps on space boundaries if available, trimming

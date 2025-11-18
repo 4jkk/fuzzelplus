@@ -86,7 +86,7 @@ complete -c fuzzel -x      -l match-nth                                         
 complete -c fuzzel -x      -l nth-delimiter                                                                     -d "field delimiter for --with-nth and --accept-nth"
 complete -c fuzzel -x      -l only-match                                                                        -d "do not allow custom entries, only return a selected item"
 complete -c fuzzel -x      -l mesg                                                                              -d "string to use as informational message above the prompt"
-complete -c fuzzel -x      -l mesg-mode          -a "truncate wrap expand"                                      -d "how to deal with message lines longer than the ui (truncate)"
+complete -c fuzzel -x      -l mesg-mode          -a "wrap expand"                                               -d "how to deal with message lines longer than the ui (wrap)"
 complete -c fuzzel    -s R -l no-run-if-empty                                                                   -d "exit immediately without showing the UI if stdin is empty (dmenu mode only)"
 complete -c fuzzel -x -s d -l log-level          -a "info warning error none"                                   -d "log-level (warning)"
 complete -c fuzzel -x -s l -l log-colorize       -a "always never auto"                                         -d "enable or disable colorization of log output on stderr"
