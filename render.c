@@ -635,7 +635,8 @@ render_message(struct render *render, struct buffer *buf)
     size_t message_len = c32len(message);
 
     const enum fcft_subpixel subpixel =
-        render->conf->colors.background.a == 1.
+        (render->conf->colors.background.a == 1. &&
+         render->conf->colors.message.a == 1.)
         ? render->subpixel : FCFT_SUBPIXEL_NONE;
 
 
