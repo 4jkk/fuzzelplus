@@ -563,7 +563,7 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 *--mesg*=_STRING_
 	Message to display above the prompt. Can contain some informational
 	message, or can be used for having your prompt be above the input
-	instead of in front.
+	instead of in front. Supports newlines.
 
 *--mesg-mode*=_wrap_|_expand_
 	How to handle lines in *--mesg* when they are longer than *--width*.

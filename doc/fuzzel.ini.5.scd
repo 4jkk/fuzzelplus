@@ -496,7 +496,9 @@ All color values are in RGBA.
 	nothing on stdin. Default: _no_.
 
 *mesg*
-	String to display as a message above the prompt. Supports newlines.
+	Message to display above the prompt. Can contain some informational
+	message, or can be used for having your prompt be above the input
+	instead of in front. Supports newlines.
 	For details on how long lines are treated, see *mesg-mode*.
 
 *mesg-mode*

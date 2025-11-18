@@ -552,7 +552,7 @@ adjust_input_glyph_offset(struct render *render, const struct prompt *prompt,
     }
 }
 
-void
+static void
 current_line_boundaries(char32_t* remaining_message, const struct config *conf,
                         char32_t** current_line_end, char32_t** next_line_start)
 {
@@ -585,8 +585,8 @@ current_line_boundaries(char32_t* remaining_message, const struct config *conf,
         (*current_line_end)++;
     }
 
-    // If there is no space in the line, all we can really (without
-    // changing the string) is stop at the end character and more to
+    // If there is no space in the line, all we can really do (without
+    // changing the string) is stop at the end character and move to
     // the next line.
     // Might be nice to have a configurable "wrapping character" option
     // later.
@@ -616,7 +616,9 @@ strip_trailing_spaces:
         *current_line_end != NULL
         && *current_line_end > remaining_message
         && **current_line_end == U' ')
+    {
         (*current_line_end)--;
+    }
 
 }
 
@@ -1998,7 +2000,8 @@ render_resized(struct render *render, int *new_width, int *new_height)
                                     &current_line_end, &next_line_start);
 
             if (render->conf->dmenu.message_mode == MESSAGE_MODE_EXPAND
-                && current_line_end + 1 - current_pos > longest_message_line) {
+                && current_line_end + 1 - current_pos > longest_message_line)
+            {
                 longest_message_line = current_line_end + 1 - current_pos;
             }
             current_pos = next_line_start;
