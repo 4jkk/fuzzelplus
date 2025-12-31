@@ -444,8 +444,13 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 
 *cache*
 	Specify the default cache location. If unset,
-	*$XDG_CACHE_HOME/fuzzel* will be used. Set to */dev/null* to
-	disable caching. Default: _not set_.
+	*$XDG_CACHE_HOME/fuzzel* will be used.
+
+		- The path must be an absolute path, or start with *~/*.
+		- Environment variables are expanded.
+		- Set to */dev/null* to disable caching.
+
+	Default: _not set_.
 
 *auto-select*
 	Boolean. When one entry is left, automatically select it.

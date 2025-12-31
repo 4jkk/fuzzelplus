@@ -14,6 +14,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <wordexp.h>
 
 #define LOG_MODULE "config"
 #define LOG_ENABLE_DBG 0
@@ -1044,8 +1045,24 @@ parse_section_main(struct context *ctx)
     else if (strcmp(key, "exit-on-keyboard-focus-loss") == 0)
         return value_to_bool(ctx, &conf->exit_on_kb_focus_loss);
 
-    else if (strcmp(key, "cache") == 0)
-        return value_to_str(ctx, &conf->cache_path);
+    else if (strcmp(key, "cache") == 0) {
+        wordexp_t p;
+        if (wordexp(ctx->value, &p, WRDE_NOCMD | WRDE_UNDEF) != 0 || p.we_wordc != 1) {
+            LOG_CONTEXTUAL_ERR("failed to expand path");
+            wordfree(&p);
+            return false;
+        }
+
+        if (p.we_wordv[0][0] != '/') {
+            LOG_CONTEXTUAL_ERR("not an absolute path");
+            wordfree(&p);
+            return false;
+        }
+
+        conf->cache_path = xstrdup(p.we_wordv[0]);
+        wordfree(&p);
+        return true;
+    }
 
     else if (strcmp(key, "auto-select") == 0)
         return value_to_bool(ctx, &conf->auto_select);
