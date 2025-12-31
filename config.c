@@ -720,25 +720,19 @@ parse_section_main(struct context *ctx)
     bool errors_are_fatal = ctx->errors_are_fatal;
 
     if (strcmp(key, "include") == 0) {
-        char *_include_path = NULL;
-        const char *include_path = NULL;
+        wordexp_t p;
+        if (wordexp(ctx->value, &p, WRDE_NOCMD | WRDE_UNDEF) != 0 || p.we_wordc != 1) {
+            LOG_CONTEXTUAL_ERR("failed to expand path");
+            wordfree(&p);
+            return false;
+        }
 
-        if (value[0] == '~' && value[1] == '/') {
-            const char *home_dir = getenv("HOME");
-
-            if (home_dir == NULL) {
-                LOG_CONTEXTUAL_ERRNO("failed to expand '~'");
-                return false;
-            }
-
-            _include_path = xstrjoin3(home_dir, "/", value + 2);
-            include_path = _include_path;
-        } else
-            include_path = value;
+        char *include_path = xstrdup(p.we_wordv[0]);
+        wordfree(&p);
 
         if (include_path[0] != '/') {
             LOG_CONTEXTUAL_ERR("not an absolute path");
-            free(_include_path);
+            free(include_path);
             return false;
         }
 
@@ -746,7 +740,7 @@ parse_section_main(struct context *ctx)
 
         if (include == NULL) {
             LOG_CONTEXTUAL_ERRNO("failed to open");
-            free(_include_path);
+            free(include_path);
             return false;
         }
 
@@ -755,7 +749,7 @@ parse_section_main(struct context *ctx)
         fclose(include);
 
         LOG_INFO("imported sub-configuration from %s", include_path);
-        free(_include_path);
+        free(include_path);
         return ret;
     }
 

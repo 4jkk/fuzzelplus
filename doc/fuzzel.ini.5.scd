@@ -33,6 +33,7 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	regardless of which section the included file ends in.
 
 		- The path must be an absolute path, or start with *~/*.
+		- Environment variables are expanded.
 		- Multiple include directives are allowed, but only one path per
 		  directive.
 		- Nested imports are allowed.
