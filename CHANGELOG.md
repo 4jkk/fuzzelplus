@@ -34,6 +34,11 @@
 
 ## Unreleased
 ### Added
+
+* Support XDG TryExec= key ([#723][723])
+
+[723]: https://codeberg.org/dnkl/fuzzel/issues/723
+
 ### Changed
 ### Deprecated
 ### Removed

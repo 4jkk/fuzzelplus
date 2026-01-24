@@ -27,6 +27,7 @@
 #include "xsnprintf.h"
 
 typedef tll(struct application *) application_llist_t;
+typedef tll(char *) seen_ids_t;
 
 struct locale_variants {
     char *lang_country_modifier;
@@ -54,6 +55,7 @@ struct action {
     char *icon;
     char *exec;
     char32_t *wexec;
+    char *try_exec;
 
     char *path;
     bool visible;
@@ -271,6 +273,11 @@ parse_desktop_file(int fd, char *id, const char32_t *file_basename_lowercase,
                 action->wexec = ambstoc32(value);
             }
 
+            else if (strcmp(key, "TryExec") == 0) {
+                free(action->try_exec);
+                action->try_exec = xstrdup(value);
+            }
+
             else if (strcmp(key, "Path") == 0) {
                 free(action->path);
                 action->path = xstrdup(value);
@@ -392,6 +399,7 @@ parse_desktop_file(int fd, char *id, const char32_t *file_basename_lowercase,
             free(a->icon);
             free(a->exec);
             free(a->wexec);
+            free(a->try_exec);
             free(a->path);
 
             tll_free_and_free(a->keywords, free);
@@ -400,6 +408,64 @@ parse_desktop_file(int fd, char *id, const char32_t *file_basename_lowercase,
             tll_free_and_free(a->notshowin, free);
 
             continue;
+        }
+
+        /* Validate TryExec if present */
+        if (a->try_exec != NULL) {
+            bool try_exec_valid = false;
+
+            if (a->try_exec[0] == '/') {
+                /* Absolute path - check if file exists and is executable */
+                if (access(a->try_exec, X_OK) == 0) {
+                    try_exec_valid = true;
+                }
+            } else {
+                /* Relative path - search in $PATH */
+                const char *path_env = getenv("PATH");
+                if (path_env != NULL) {
+                    char *path_copy = xstrdup(path_env);
+                    char *ctx;
+
+                    for (const char *dir = strtok_r(path_copy, ":", &ctx);
+                         dir != NULL;
+                         dir = strtok_r(NULL, ":", &ctx))
+                    {
+                        char *full_path = xstrjoin3(dir, "/", a->try_exec);
+                        if (access(full_path, X_OK) == 0) {
+                            try_exec_valid = true;
+                            free(full_path);
+                            break;
+                        }
+                        free(full_path);
+                    }
+
+                    free(path_copy);
+                }
+            }
+
+            if (!try_exec_valid) {
+                /* TryExec validation failed - skip this entry */
+                free(a->name);
+                free(a->generic_name);
+                free(a->app_id);
+                free(a->comment);
+                free(a->icon);
+                free(a->exec);
+                free(a->wexec);
+                free(a->try_exec);
+                free(a->path);
+
+                tll_free_and_free(a->keywords, free);
+                tll_free_and_free(a->categories, free);
+                tll_free_and_free(a->onlyshowin, free);
+                tll_free_and_free(a->notshowin, free);
+
+                continue;
+            }
+
+            /* TryExec is no longer needed after validation */
+            free(a->try_exec);
+            a->try_exec = NULL;
         }
 
         if (a->name == NULL)
@@ -572,7 +638,8 @@ new_id(const char *base_id, const char *new_part)
 static void
 scan_dir(int base_fd, const char *terminal, bool include_actions,
          bool filter_desktop, char_list_t *desktops,
-         application_llist_t *applications, const char *base_id, const char *base_path)
+         application_llist_t *applications, seen_ids_t *seen_ids,
+         const char *base_id, const char *base_path)
 {
     DIR *d = fdopendir(base_fd);
     if (d == NULL) {
@@ -638,7 +705,7 @@ scan_dir(int base_fd, const char *terminal, bool include_actions,
             xsnprintf(nested_base_path, sizeof(nested_base_path), "%s/%s", base_path, e->d_name);
             scan_dir(dir_fd, terminal, include_actions,
                      filter_desktop, desktops,
-                     applications, nested_base_id, nested_base_path);
+                     applications, seen_ids, nested_base_id, nested_base_path);
             free(nested_base_id);
             close(dir_fd);
         } else if (S_ISREG(st.st_mode)) {
@@ -678,15 +745,19 @@ scan_dir(int base_fd, const char *terminal, bool include_actions,
 
                 char *id = new_id(base_id, e->d_name);
 
-                bool already_added = false;
-                tll_foreach(*applications, it) {
-                    if (strcmp(it->item->id, id) == 0) {
-                        already_added = true;
+                /* Check if this ID has already been seen (XDG spec: first file wins) */
+                bool already_seen = false;
+                tll_foreach(*seen_ids, it) {
+                    if (strcmp(it->item, id) == 0) {
+                        already_seen = true;
                         break;
                     }
                 }
 
-                if (!already_added) {
+                if (!already_seen) {
+                    /* Mark this ID as seen before parsing */
+                    tll_push_back(*seen_ids, xstrdup(id));
+
                     /* Construct full desktop file path */
                     char desktop_file_path[PATH_MAX];
                     xsnprintf(desktop_file_path, sizeof(desktop_file_path), "%s/%s", base_path, e->d_name);
@@ -725,6 +796,7 @@ xdg_find_programs(const char *terminal, bool include_actions,
                   struct application_list *applications)
 {
     application_llist_t apps = tll_init();
+    seen_ids_t seen_ids = tll_init();
 
     xdg_data_dirs_t dirs = xdg_data_dirs();
     tll_foreach(dirs, it) {
@@ -733,10 +805,12 @@ xdg_find_programs(const char *terminal, bool include_actions,
 
         int fd = open(path, O_RDONLY | O_CLOEXEC);
         if (fd != -1) {
-            scan_dir(fd, terminal, include_actions, filter_desktop, desktops, &apps, NULL, path);
+            scan_dir(fd, terminal, include_actions, filter_desktop, desktops, &apps, &seen_ids, NULL, path);
             close(fd);
         }
     }
+
+    tll_free_and_free(seen_ids, free);
 
     mtx_lock(&applications->lock);
     applications->count = tll_length(apps);
