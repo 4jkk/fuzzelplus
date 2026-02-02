@@ -38,9 +38,16 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Segfault when attempting to parse a comment in an icon `index.theme` file
+  and correctly interpreting KV pairs by ignoring whitespace ([#727][727]).
+
+[727]: https://codeberg.org/dnkl/fuzzel/pulls/727
+
 ### Security
 ### Contributors
 
+* Rahul Sandhu
 
 ## 1.14.0
 
