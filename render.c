@@ -1500,8 +1500,7 @@ render_png_libpng(struct icon *icon, int x, int y, int size,
                     pixman_double_to_fixed(1. / scale),
                     kernel, kernel,
                     kernel, kernel,
-                    pixman_int_to_fixed(1),
-                    pixman_int_to_fixed(1));
+                    1, 1);
 
                 if (params != NULL || param_count == 0) {
                     pixman_image_set_filter(
