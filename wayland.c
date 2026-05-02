@@ -35,6 +35,7 @@
 #include <wlr-layer-shell-unstable-v1.h>
 #include <xdg-activation-v1.h>
 #include <xdg-output-unstable-v1.h>
+#include <xdg-shell.h>
 
 #include <tllist.h>
 
@@ -172,6 +173,18 @@ struct wayland {
     struct zwlr_layer_shell_v1 *layer_shell;
     struct zwlr_layer_surface_v1 *layer_surface;
     bool has_zwlr_layer_shell_kb_inter_on_demand;
+
+    struct xdg_wm_base *xdg_wm_base;
+    struct xdg_surface *xdg_surface;
+    struct xdg_toplevel *xdg_toplevel;
+
+    /*
+     * If layer shell protocol is unavailable, use XDG shell as fallback.
+     * In XDG shell mode the compositor controls placement; we
+     * inform it of the window geometry so it can size/center
+     * the window correctly.
+     */
+    bool xdg_mode;
 
     struct wp_viewport *viewport;
     struct wp_fractional_scale_v1 *fractional_scale;
@@ -1781,17 +1794,26 @@ wayl_resized(struct wayland *wayl)
     wayl->width = roundf(roundf(wayl->width / scale) * scale);
     wayl->height = roundf(roundf(wayl->height / scale) * scale);
 
-    zwlr_layer_surface_v1_set_size(
-        wayl->layer_surface,
-        roundf(wayl->width / scale),
-        roundf(wayl->height / scale));
+    if (wayl->xdg_mode) {
+        if (wayl->xdg_surface != NULL) {
+            xdg_surface_set_window_geometry(
+                wayl->xdg_surface, 0, 0,
+                roundf(wayl->width / scale),
+                roundf(wayl->height / scale));
+        }
+    } else {
+        zwlr_layer_surface_v1_set_size(
+            wayl->layer_surface,
+            roundf(wayl->width / scale),
+            roundf(wayl->height / scale));
 
-    zwlr_layer_surface_v1_set_margin(
-        wayl->layer_surface, wayl->conf->margin.y, wayl->conf->margin.x,
-        wayl->conf->margin.y, wayl->conf->margin.x);
+        zwlr_layer_surface_v1_set_margin(
+            wayl->layer_surface, wayl->conf->margin.y, wayl->conf->margin.x,
+            wayl->conf->margin.y, wayl->conf->margin.x);
 
-    zwlr_layer_surface_v1_set_anchor(
-        wayl->layer_surface, wayl->conf->anchor);
+        zwlr_layer_surface_v1_set_anchor(
+            wayl->layer_surface, wayl->conf->anchor);
+    }
 }
 
 static void
@@ -2041,6 +2063,69 @@ static const struct wp_color_manager_v1_listener color_manager_listener = {
     .done = &color_manager_done,
 };
 
+/*
+ * XDG shell fallback callbacks
+ */
+static void
+xdg_wm_base_ping(void *data, struct xdg_wm_base *xdg_wm_base, uint32_t serial)
+{
+    xdg_wm_base_pong(xdg_wm_base, serial);
+}
+
+static const struct xdg_wm_base_listener xdg_wm_base_listener = {
+    .ping = xdg_wm_base_ping,
+};
+
+static void
+xdg_surface_configure(void *data, struct xdg_surface *xdg_surface,
+                      uint32_t serial)
+{
+    struct wayland *wayl = data;
+    xdg_surface_ack_configure(xdg_surface, serial);
+    wayl->is_configured = true;
+    wayl_refresh(wayl);
+}
+
+static const struct xdg_surface_listener xdg_surface_listener = {
+    .configure = xdg_surface_configure,
+};
+
+static void
+xdg_toplevel_configure(void *data, struct xdg_toplevel *xdg_toplevel,
+                       int32_t width, int32_t height, struct wl_array *states)
+{
+    /*
+     * Compositor suggests a size (0,0 means "choose your own").
+     * fuzzel manages its own size, so ignore the suggestion.
+     */
+}
+
+static void
+xdg_toplevel_close(void *data, struct xdg_toplevel *xdg_toplevel)
+{
+    struct wayland *wayl = data;
+    wayl->status = EXIT;
+}
+
+static void
+xdg_toplevel_configure_bounds(void *data, struct xdg_toplevel *xdg_toplevel,
+                              int32_t width, int32_t height)
+{
+}
+
+static void
+xdg_toplevel_wm_capabilities(void *data, struct xdg_toplevel *xdg_toplevel,
+                              struct wl_array *capabilities)
+{
+}
+
+static const struct xdg_toplevel_listener xdg_toplevel_listener = {
+    .configure        = xdg_toplevel_configure,
+    .close            = xdg_toplevel_close,
+    .configure_bounds = xdg_toplevel_configure_bounds,
+    .wm_capabilities  = xdg_toplevel_wm_capabilities,
+};
+
 static bool
 verify_iface_version(const char *iface, uint32_t version, uint32_t wanted)
 {
@@ -2211,6 +2296,16 @@ handle_global(void *data, struct wl_registry *registry,
             LOG_WARN("keyboard-focus=on-demand requires zwlr_layer_shell_v1 version: %d, found version: %d",
                 ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND_SINCE_VERSION, version);
         }
+    }
+
+    else if (strcmp(interface, xdg_wm_base_interface.name) == 0) {
+        const uint32_t required = 1;
+        if (!verify_iface_version(interface, version, required))
+            return;
+
+        wayl->xdg_wm_base = wl_registry_bind(
+            wayl->registry, name, &xdg_wm_base_interface, min(version, 5));
+        xdg_wm_base_add_listener(wayl->xdg_wm_base, &xdg_wm_base_listener, NULL);
     }
 
     else if (strcmp(interface, wl_seat_interface.name) == 0) {
@@ -2876,8 +2971,16 @@ wayl_init(const struct config *conf, struct fdm *fdm,
         goto out;
     }
     if (wayl->layer_shell == NULL) {
-        LOG_ERR("compositor is missing support for the Wayland layer surface protocol");
-        goto out;
+        if (wayl->xdg_wm_base != NULL) {
+            LOG_INFO("layer shell protocol (zwlr_layer_shell_v1) not available; "
+                     "using XDG shell fallback");
+            LOG_WARN("anchor, margin and layer options are not supported in XDG shell mode");
+            wayl->xdg_mode = true;
+        } else {
+            LOG_ERR("compositor supports neither zwlr_layer_shell_v1 nor xdg_wm_base; "
+                    "cannot continue");
+            goto out;
+        }
     }
     if (wayl->shm == NULL) {
         LOG_ERR("no shared memory buffers interface");
@@ -2914,14 +3017,35 @@ wayl_init(const struct config *conf, struct fdm *fdm,
 
     wl_surface_add_listener(wayl->surface, &surface_listener, wayl);
 
-    wayl->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
-        wayl->layer_shell, wayl->surface,
-        wayl->monitor != NULL ? wayl->monitor->output : NULL,
-        conf->layer, conf->namespace);
+    if (!wayl->xdg_mode) {
+        wayl->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
+            wayl->layer_shell, wayl->surface,
+            wayl->monitor != NULL ? wayl->monitor->output : NULL,
+            conf->layer, conf->namespace);
 
-    if (wayl->layer_surface == NULL) {
-        LOG_ERR("failed to create layer shell surface");
-        goto out;
+        if (wayl->layer_surface == NULL) {
+            LOG_ERR("failed to create layer shell surface");
+            goto out;
+        }
+    } else {
+        wayl->xdg_surface = xdg_wm_base_get_xdg_surface(
+            wayl->xdg_wm_base, wayl->surface);
+
+        if (wayl->xdg_surface == NULL) {
+            LOG_ERR("failed to create XDG surface");
+            goto out;
+        }
+        xdg_surface_add_listener(wayl->xdg_surface, &xdg_surface_listener, wayl);
+
+        wayl->xdg_toplevel = xdg_surface_get_toplevel(wayl->xdg_surface);
+        if (wayl->xdg_toplevel == NULL) {
+            LOG_ERR("failed to create XDG toplevel");
+            goto out;
+        }
+        xdg_toplevel_set_app_id(wayl->xdg_toplevel, conf->namespace);
+        xdg_toplevel_set_title(wayl->xdg_toplevel, "fuzzel");
+        xdg_toplevel_add_listener(
+            wayl->xdg_toplevel, &xdg_toplevel_listener, wayl);
     }
 
     if (wayl->fractional_scale_manager != NULL && wayl->viewporter != NULL) {
@@ -2970,13 +3094,15 @@ wayl_init(const struct config *conf, struct fdm *fdm,
     } else
         LOG_INFO("gamma-correct blending: disabled");
 
-    zwlr_layer_surface_v1_set_keyboard_interactivity(wayl->layer_surface,
-        wayl->has_zwlr_layer_shell_kb_inter_on_demand
-            ? wayl->conf->keyboard_focus
-            : ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
+    if (!wayl->xdg_mode) {
+        zwlr_layer_surface_v1_set_keyboard_interactivity(wayl->layer_surface,
+            wayl->has_zwlr_layer_shell_kb_inter_on_demand
+                ? wayl->conf->keyboard_focus
+                : ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
 
-    zwlr_layer_surface_v1_add_listener(
-        wayl->layer_surface, &layer_surface_listener, wayl);
+        zwlr_layer_surface_v1_add_listener(
+            wayl->layer_surface, &layer_surface_listener, wayl);
+    }
 
     wayl->subpixel = wayl->monitor != NULL
         ? (enum fcft_subpixel)wayl->monitor->subpixel : guess_subpixel(wayl);
@@ -3072,12 +3198,18 @@ wayl_destroy(struct wayland *wayl)
         wp_fractional_scale_v1_destroy(wayl->fractional_scale);
     if (wayl->viewport != NULL)
         wp_viewport_destroy(wayl->viewport);
+    if (wayl->xdg_toplevel != NULL)
+        xdg_toplevel_destroy(wayl->xdg_toplevel);
+    if (wayl->xdg_surface != NULL)
+        xdg_surface_destroy(wayl->xdg_surface);
     if (wayl->layer_surface != NULL)
         zwlr_layer_surface_v1_destroy(wayl->layer_surface);
     if (wayl->layer_shell != NULL)
         zwlr_layer_shell_v1_destroy(wayl->layer_shell);
     if (wayl->surface != NULL)
         wl_surface_destroy(wayl->surface);
+    if (wayl->xdg_wm_base != NULL)
+        xdg_wm_base_destroy(wayl->xdg_wm_base);
     if (wayl->fractional_scale_manager != NULL)
         wp_fractional_scale_manager_v1_destroy(wayl->fractional_scale_manager);
     if (wayl->viewporter != NULL)
