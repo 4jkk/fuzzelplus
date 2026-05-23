@@ -1083,6 +1083,9 @@ parse_section_colors(struct context *ctx)
     else if (strcmp(key, "input") == 0)
         return value_to_color(ctx, true, &conf->colors.input);
 
+    else if (strcmp(key, "cursor") == 0)
+        return value_to_color(ctx, true, &conf->colors.cursor);
+
     else if (strcmp(key, "match") == 0)
         return value_to_color(ctx, true, &conf->colors.match);
 
@@ -1703,6 +1706,7 @@ config_load(struct config *conf, const char *conf_path,
             .message = conf_hex_to_rgba(0x657b83ff),
             .prompt = conf_hex_to_rgba(0x586e75ff),
             .input = conf_hex_to_rgba(0x657b83ff),
+            .cursor = conf_hex_to_rgba(0x657b83ff),
             .match = conf_hex_to_rgba(0xcb4b16ff),
             .selection = conf_hex_to_rgba(0xeee8d5ff),
             .selection_text = conf_hex_to_rgba(0x586e75ff),

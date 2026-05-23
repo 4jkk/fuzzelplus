@@ -410,6 +410,7 @@ print_usage(const char *prog_name)
            "  -B,--border-width=INT          width of border, in pixels (1)\n"
            "  -r,--border-radius=INT         amount of corner \"roundness\" (10)\n"
            "  -C,--border-color=HEX          border color (002b36ff)\n"
+           "     --cursor-color=HEX          cursor color (657b83ff)\n"
            "     --show-actions              include desktop actions in the list\n"
            "     --match-mode=exact|fzf|fuzzy how to match what you type against the entries\n"
            "     --filter-desktop            filter desktop entries based on XDG_CURRENT\n"
@@ -872,6 +873,7 @@ main(int argc, char *const *argv)
     #define OPT_DMENU_MESSAGE_MODE           312
     #define OPT_MESSAGE_COLOR                313
     #define OPT_GENERIC_OVERRIDE             314
+    #define OPT_CURSOR_COLOR                 315
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -916,6 +918,7 @@ main(int argc, char *const *argv)
         {"border-width",         required_argument, 0, 'B'},
         {"border-radius",        required_argument, 0, 'r'},
         {"border-color",         required_argument, 0, 'C'},
+        {"cursor-color",         required_argument, 0, OPT_CURSOR_COLOR},
         {"prompt",               required_argument, 0, 'p'},
         {"prompt-only",          required_argument, 0, OPT_PROMPT_ONLY},
         {"placeholder",          required_argument, 0, OPT_PLACEHOLDER},
@@ -1003,6 +1006,7 @@ main(int argc, char *const *argv)
         bool input_color_set:1;
         bool match_color_set:1;
         bool selection_color_set:1;
+        bool cursor_color_set:1;
         bool selection_text_color_set:1;
         bool selection_match_color_set:1;
         bool selection_border_radius_set:1;
@@ -1621,6 +1625,24 @@ main(int argc, char *const *argv)
             break;
         }
 
+        case OPT_CURSOR_COLOR: {
+            const char *clr_start = optarg;
+            if (clr_start[0] == '#')
+                clr_start++;
+
+            errno = 0;
+            char *end = NULL;
+            uint32_t cursor_color = strtoul(clr_start, &end, 16);
+            if (errno != 0 || end == NULL || *end != '\0' || (end - clr_start) != 8) {
+                fprintf(stderr, "cursor-color: %s: invalid color\n", optarg);
+                return EXIT_FAILURE;
+            }
+            cmdline_overrides.conf.colors.cursor =
+                conf_hex_to_rgba(cursor_color);
+            cmdline_overrides.cursor_color_set = true;
+            break;
+        }
+
         case OPT_SHOW_ACTIONS:
             cmdline_overrides.actions_enabled_set = true;
             cmdline_overrides.conf.actions_enabled = true;
@@ -2134,6 +2156,8 @@ main(int argc, char *const *argv)
         conf.colors.placeholder = cmdline_overrides.conf.colors.placeholder;
     if (cmdline_overrides.input_color_set)
         conf.colors.input = cmdline_overrides.conf.colors.input;
+    if (cmdline_overrides.cursor_color_set)
+        conf.colors.cursor = cmdline_overrides.conf.colors.cursor;
     if (cmdline_overrides.match_color_set)
         conf.colors.match = cmdline_overrides.conf.colors.match;
     if (cmdline_overrides.selection_color_set)

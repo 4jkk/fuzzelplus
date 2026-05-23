@@ -350,6 +350,9 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 *-C*,*--border-color*=_HEX_
 	The color of the border. See *COLORS*. Default: _002b36ff_.
 
+*--cursor-color*=_HEX_
+	The color of the cursor. See *COLORS*. Default: _657b83ff_.
+
 *--show-actions*
 	Include desktop actions in the list. Desktop actions are
 	alternative actions some desktop entries have. Examples include

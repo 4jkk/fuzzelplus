@@ -51,6 +51,7 @@ complete -c fuzzel -x      -l message-color                                     
 complete -c fuzzel -x      -l prompt-color                                                                      -d "color of the prompt text (586e75ff)"
 complete -c fuzzel -x      -l placeholder-color                                                                 -d "color of the placeholder text (93a1a1ff)"
 complete -c fuzzel -x      -l input-color                                                                       -d "color of the input string (657b83ff)"
+complete -c fuzzel -x      -l cursor                                                                            -d "color of the cursor (657b83ff)"
 complete -c fuzzel -x -s m -l match-color                                                                       -d "color of matched substring (cb4b16ff)"
 complete -c fuzzel -x -s s -l selection-color                                                                   -d "background color of selected item (eee8d5ff)"
 complete -c fuzzel -x -s S -l selection-text-color                                                              -d "text color of selected item (586e75ff)"

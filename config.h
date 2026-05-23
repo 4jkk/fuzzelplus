@@ -208,6 +208,7 @@ struct config {
         struct rgba match;
         struct rgba selection;
         struct rgba selection_text;
+        struct rgba cursor;
         struct rgba selection_match;
         struct rgba counter;
         struct rgba placeholder;

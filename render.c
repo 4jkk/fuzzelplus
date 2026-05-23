@@ -82,6 +82,7 @@ struct render {
     pixman_color_t pix_message_color;
     pixman_color_t pix_prompt_color;
     pixman_color_t pix_input_color;
+    pixman_color_t pix_cursor_color;
     pixman_color_t pix_match_color;
     pixman_color_t pix_selection_color;
     pixman_color_t pix_selection_text_color;
@@ -442,7 +443,7 @@ render_cursor(const struct render *render, int x, int baseline, pixman_image_t *
         const int height = min(font->ascent + font->descent, render->row_height);
 
         pixman_image_fill_rectangles(
-            PIXMAN_OP_SRC, pix, &render->pix_input_color,
+            PIXMAN_OP_SRC, pix, &render->pix_cursor_color,
             1, &(pixman_rectangle16_t){
                 x,
                 baseline + render->font->descent - height,
@@ -451,7 +452,7 @@ render_cursor(const struct render *render, int x, int baseline, pixman_image_t *
     } else {
         /* TODO: future: underline cursor */
         pixman_image_fill_rectangles(
-            PIXMAN_OP_SRC, pix, &render->pix_input_color,
+            PIXMAN_OP_SRC, pix, &render->pix_cursor_color,
             1, &(pixman_rectangle16_t){
                 x, baseline - font->underline.position,
                 font->max_advance.x,
@@ -2068,6 +2069,7 @@ render_initialize_colors(struct render *render, const struct config *conf,
     render->pix_message_color = rgba2pixman(gamma_correct, conf->colors.message);
     render->pix_prompt_color = rgba2pixman(gamma_correct, conf->colors.prompt);
     render->pix_input_color = rgba2pixman(gamma_correct, conf->colors.input);
+    render->pix_cursor_color = rgba2pixman(gamma_correct, conf->colors.cursor);
     render->pix_match_color = rgba2pixman(gamma_correct, conf->colors.match);
     render->pix_selection_color = rgba2pixman(gamma_correct, conf->colors.selection);
     render->pix_selection_text_color = rgba2pixman(gamma_correct, conf->colors.selection_text);
