@@ -502,8 +502,8 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 	input line is printed on stdout. dmenu mode only.
 
 	The argument can also be a format string (i.e free-format text),
-	where *{N}* expands to the N:th column. Ranges on the form
-	*{N..M}* and *{N..}* (open-ended) are also supported.
+	where "*{N}*" expands to the N:th column. Ranges on the form
+	"*{N..M}*" and "*{N..}*" (open-ended) are also supported.
 
 	Example:
 	```
@@ -522,8 +522,8 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 	*--nth-delimiter*) of each input line to stdout.  dmenu mode only.
 
 	The argument can also be a format string (i.e free-format text),
-	where *{N}* expands to the N:th column. Ranges on the form
-	*{N..M}* and *{N..}* (open-ended) are also supported.
+	where "*{N}*" expands to the N:th column. Ranges on the form
+	"*{N..M}*" and "*{N..}*" (open-ended) are also supported.
 
 	Example:
 	```
@@ -544,8 +544,8 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 	*--with-nth*).
 
 	The argument can also be a format string (i.e free-format text),
-	where *{N}* expands to the N:th column. Ranges on the form
-	*{N..M}* and *{N..}* (open-ended) are also supported.
+	where "*{N}*" expands to the N:th column. Ranges on the form
+	"*{N..M}*" and "*{N..}*" (open-ended) are also supported.
 
 	Example:
 	```
