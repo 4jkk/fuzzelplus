@@ -868,6 +868,7 @@ main(int argc, char *const *argv)
     #define OPT_DMENU_MESSAGE                311
     #define OPT_DMENU_MESSAGE_MODE           312
     #define OPT_MESSAGE_COLOR                313
+    #define OPT_CENTER_PROMPT                314
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -914,6 +915,7 @@ main(int argc, char *const *argv)
         {"border-color",         required_argument, 0, 'C'},
         {"prompt",               required_argument, 0, 'p'},
         {"prompt-only",          required_argument, 0, OPT_PROMPT_ONLY},
+        {"center-prompt",        no_argument,			  0, OPT_CENTER_PROMPT},
         {"placeholder",          required_argument, 0, OPT_PLACEHOLDER},
         {"search",               required_argument, 0, OPT_SEARCH_TEXT},
         {"terminal",             required_argument, 0, 'T'},
@@ -1348,6 +1350,10 @@ main(int argc, char *const *argv)
             cmdline_overrides.prompt_only_set = true;
             cmdline_overrides.conf.prompt_only = true;
             break;
+
+				case OPT_CENTER_PROMPT:
+						cmdline_overrides.conf.center_prompt = true;
+						break;
 
         case OPT_PLACEHOLDER:
             free(cmdline_overrides.conf.placeholder);
@@ -2091,6 +2097,8 @@ main(int argc, char *const *argv)
         conf.hide_when_prompt_empty = cmdline_overrides.conf.hide_when_prompt_empty;
     if (cmdline_overrides.hide_prompt_set)
         conf.hide_prompt = cmdline_overrides.conf.hide_prompt;
+		if (cmdline_overrides.conf.center_prompt)
+			conf.center_prompt = true;
     if (cmdline_overrides.anchor_set)
         conf.anchor = cmdline_overrides.conf.anchor;
     if (cmdline_overrides.x_margin_set)
@@ -2288,7 +2296,7 @@ main(int argc, char *const *argv)
     if ((render = render_init(&conf, &icon_lock)) == NULL)
         goto out;
 
-    if ((prompt = prompt_init(conf.prompt, conf.placeholder, conf.search_text)) == NULL)
+    if ((prompt = prompt_init(conf.prompt, conf.placeholder, conf.search_text, conf.center_prompt, conf.chars)) == NULL)
         goto out;
 
     if ((matches = matches_init(

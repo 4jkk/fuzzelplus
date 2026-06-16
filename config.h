@@ -150,6 +150,7 @@ struct config {
 
     bool hide_when_prompt_empty;
     bool hide_prompt;
+		bool center_prompt;
 
     bool actions_enabled;
 
@@ -246,3 +247,4 @@ bool config_load(
 void config_free(struct config *conf);
 
 struct rgba conf_hex_to_rgba(uint32_t color);
+

@@ -20,19 +20,38 @@ struct prompt {
 
 struct prompt *
 prompt_init(const char32_t *prompt_text, const char32_t *placeholder,
-            const char32_t *text)
+            const char32_t *text, const bool center_prompt, unsigned int chars)
 {
     const bool have_initial_text = text != NULL && text[0] != U'\0';
 
     struct prompt *prompt = xmalloc(sizeof(*prompt));
     *prompt = (struct prompt) {
-        .prompt = xc32dup(prompt_text),
+        .prompt = center_prompt? prompt_center(prompt_text, chars) : xc32dup(prompt_text),
         .placeholder = xc32dup(placeholder),
         .text = have_initial_text ? xc32dup(text) : xcalloc(1, sizeof(char32_t)),
         .cursor = have_initial_text ? c32len(text) : 0,
     };
 
     return prompt;
+}
+
+char32_t* prompt_center(const char32_t *prompt_text, unsigned int chars){
+
+	unsigned int len =0;
+	for(; prompt_text[len]!='\0' && len<= chars ; len++);
+
+	int padding = chars - len;
+	padding = ( padding % 2 ? padding - 1 : padding )/2;
+
+	char32_t buf[chars + 4]; // two characters are for preventing cursor rendering, the last is for null character
+
+	int i =0, j=0;
+	for(; i < padding; i++ ) buf[i]=' ';
+	for(; j <len;				   ) buf[i++]=prompt_text[j++];
+	for(; i <= chars+2; i++) buf[i]=' ';
+	buf[chars + 3]= '\0';
+
+	return xc32dup(buf);
 }
 
 void
@@ -289,3 +308,4 @@ prompt_erase_before_cursor(struct prompt *prompt)
 
     return true;
 }
+

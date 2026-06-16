@@ -8,10 +8,12 @@ struct prompt;
 struct wayland;
 struct prompt *prompt_init(
     const char32_t *prompt_text, const char32_t *placeholder,
-    const char32_t *text);
+    const char32_t *text, const bool center_prompt, unsigned int chars);
 void prompt_destroy(struct prompt *prompt);
 
 void prompt_insert_chars(struct prompt *prompt, const char *text, size_t len);
+
+char32_t* prompt_center(const char32_t *prompt_text, unsigned int chars);
 
 const char32_t *prompt_prompt(const struct prompt *prompt);
 const char32_t *prompt_placeholder(const struct prompt *prompt);
@@ -32,3 +34,4 @@ bool prompt_erase_next_word(struct prompt *prompt);
 bool prompt_erase_prev_word(struct prompt *prompt);
 bool prompt_erase_after_cursor(struct prompt *prompt);
 bool prompt_erase_before_cursor(struct prompt *prompt);
+
