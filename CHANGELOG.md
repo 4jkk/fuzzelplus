@@ -35,15 +35,40 @@
 
 ## Unreleased
 ### Added
+
+* `--override` command line option, allowing you to override **all**
+  options available in `fuzzel.ini` ([#759][759]).
+* IME support, via the `text-input-unstable-v3` Wayland protocol
+  ([#615][614]).
+* Support for the `TryExec` key in `.desktop` files ([#723][723]).
+
+[759]: https://codeberg.org/dnkl/fuzzel/issues/759
+[615]: https://codeberg.org/dnkl/fuzzel/issues/615
+[723]: https://codeberg.org/dnkl/fuzzel/issues/723
+
+
 ### Changed
+
+* Application mode: fuzzel no longer waits for all the `.desktop`
+  files to be loaded before displaying the window. This ensures you
+  can start typing immediately ([#751][751]).
+
+[751]: https://codeberg.org/dnkl/fuzzel/issues/751
+
+
 ### Deprecated
 ### Removed
 ### Fixed
 
 * `image-size-ratio=0` causing a crash due to a zero-size allocation
   ([#739][739]).
+* First entry not being hover-able until other entries have been
+  hovered ([#765][765]).
+* Clicking an entry did not select it, causing wrong entry to be
+  executed.
 
 [739]: https://codeberg.org/dnkl/fuzzel/issues/739
+[765]: https://codeberg.org/dnkl/fuzzel/issues/765
 
 ### Security
 ### Contributors
