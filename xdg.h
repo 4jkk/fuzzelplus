@@ -4,6 +4,8 @@
 #include "icon.h"
 #include "tllist.h"
 
+#include <regex.h>
+
 struct xdg_data_dir {
     char *path;
     int fd;
@@ -19,4 +21,5 @@ const char *xdg_cache_dir(void);
 void xdg_find_programs(
     const char *terminal, bool include_actions,
     bool filter_desktop, char_list_t *desktops,
-    struct application_list *applications);
+    struct application_list *applications,
+    const regex_t *match_exclude, size_t match_exclude_count);

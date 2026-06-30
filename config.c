@@ -1053,6 +1053,28 @@ parse_section_main(struct context *ctx)
     else if (strcmp(key, "enable-mouse") == 0)
         return value_to_bool(ctx, &conf->enable_mouse);
 
+    else if (strcmp(key, "match-exclude") == 0) {
+        // Free existing
+        for (size_t i = 0; i < conf->match_exclude_count; i++)
+            free(conf->match_exclude[i]);
+        free(conf->match_exclude);
+        conf->match_exclude = NULL;
+        conf->match_exclude_count = 0;
+
+        char *copy = xstrdup(value);
+        char *saveptr = NULL;
+        char *tok = strtok_r(copy, ",", &saveptr);
+        while (tok != NULL) {
+            while (*tok == ' ') tok++;
+            conf->match_exclude = xrealloc(
+                conf->match_exclude,
+                (conf->match_exclude_count + 1) * sizeof(char *));
+            conf->match_exclude[conf->match_exclude_count++] = xstrdup(tok);
+            tok = strtok_r(NULL, ",", &saveptr);
+        }
+        free(copy);
+    }
+
     else
         LOG_CONTEXTUAL_ERR("not a valid option: %s", key);
 
@@ -1804,6 +1826,14 @@ config_free(struct config *conf)
     free(conf->dmenu.accept_nth_format);
     free(conf->dmenu.match_nth_format);
     free_key_binding_list(&conf->key_bindings);
+    // match-exclude list
+    for (size_t i = 0; i < conf->match_exclude_count; i++) {
+        free(conf->match_exclude[i]);
+        if (conf->match_exclude_regex != NULL)
+            regfree(&conf->match_exclude_regex[i]);
+    }
+    free(conf->match_exclude);
+    free(conf->match_exclude_regex);
 }
 
 struct rgba
@@ -1815,4 +1845,24 @@ conf_hex_to_rgba(uint32_t color)
         .b = (double)((color >>  8) & 0xff) / 255.0,
         .a = (double)((color >>  0) & 0xff) / 255.0,
     };
+}
+
+void
+config_compile_exclude_regex(struct config *conf)
+{
+    if (conf->match_exclude_count == 0)
+        return;
+
+    conf->match_exclude_regex = xcalloc(
+        conf->match_exclude_count, sizeof(conf->match_exclude_regex[0]));
+
+    for (size_t i = 0; i < conf->match_exclude_count; i++) {
+        if (regcomp(&conf->match_exclude_regex[i],
+            conf->match_exclude[i],
+            REG_EXTENDED | REG_NOSUB | REG_ICASE) != 0)
+        {
+            LOG_WARN("match-exclude: invalid regex: %s", conf->match_exclude[i]);
+            memset(&conf->match_exclude_regex[i], 0, sizeof(regex_t));
+        }
+    }
 }

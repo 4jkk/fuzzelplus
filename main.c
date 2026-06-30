@@ -612,7 +612,8 @@ populate_apps(void *_ctx)
             read_cache(cache_path, apps, true);
         }
     } else {
-        xdg_find_programs(terminal, actions_enabled, filter_desktop, &desktops, apps);
+        xdg_find_programs(terminal, actions_enabled, filter_desktop, &desktops, apps,
+            conf->match_exclude_regex, conf->match_exclude_count);
         if (list_exec_in_path)
             path_find_programs(apps);
         read_cache(cache_path, apps, false);
@@ -872,6 +873,7 @@ main(int argc, char *const *argv)
     #define OPT_DMENU_MESSAGE_MODE           312
     #define OPT_MESSAGE_COLOR                313
     #define OPT_GENERIC_OVERRIDE             314
+    #define OPT_MATCH_EXCLUDE                315
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -943,6 +945,7 @@ main(int argc, char *const *argv)
         {"scaling-filter",       required_argument, 0, OPT_SCALING_FILTER},
         {"auto-select",          no_argument,       0, OPT_AUTO_SELECT},
         {"no-mouse",             no_argument,       0, OPT_NO_MOUSE},
+        {"match-exclude",        required_argument, 0, OPT_MATCH_EXCLUDE},
 
         /* dmenu mode */
         {"dmenu",                no_argument,       0, 'd'},
@@ -1043,6 +1046,7 @@ main(int argc, char *const *argv)
         bool print_timing_info_set:1;
         bool scaling_filter_set:1;
         bool no_mouse_set:1;
+        bool match_exclude_set:1;
     } cmdline_overrides = {{0}};
 
     setlocale(LC_CTYPE, "");
@@ -1990,6 +1994,24 @@ main(int argc, char *const *argv)
             tll_push_back(generic_overrides, strdup(optarg));
             break;
 
+        case OPT_MATCH_EXCLUDE: {
+            char *copy = xstrdup(optarg);
+            char *saveptr = NULL;
+            char *tok = strtok_r(copy, ",", &saveptr);
+            while (tok != NULL) {
+                while (*tok == ' ') tok++;
+                cmdline_overrides.conf.match_exclude = xrealloc(
+                    cmdline_overrides.conf.match_exclude,
+                    (cmdline_overrides.conf.match_exclude_count + 1) * sizeof(char *));
+                cmdline_overrides.conf.match_exclude[
+                    cmdline_overrides.conf.match_exclude_count++] = xstrdup(tok);
+                tok = strtok_r(NULL, ",", &saveptr);
+            }
+            free(copy);
+            cmdline_overrides.match_exclude_set = true;
+            break;
+        }
+
         case 'v':
             printf("fuzzel %s\n", version_and_features());
             return EXIT_SUCCESS;
@@ -2231,6 +2253,14 @@ main(int argc, char *const *argv)
     if (cmdline_overrides.no_mouse_set)
         conf.enable_mouse = cmdline_overrides.conf.enable_mouse;
 
+    if (cmdline_overrides.match_exclude_set) {
+        for (size_t i = 0; i < conf.match_exclude_count; i++)
+            free(conf.match_exclude[i]);
+        free(conf.match_exclude);
+        conf.match_exclude = cmdline_overrides.conf.match_exclude;
+        conf.match_exclude_count = cmdline_overrides.conf.match_exclude_count;
+    }
+
     if (conf.dmenu.enabled) {
         /* We don't have any meta data in dmenu mode */
         conf.match_fields = conf.dmenu.match_nth_format != NULL
@@ -2243,6 +2273,8 @@ main(int argc, char *const *argv)
             close(STDIN_FILENO);  /* To catch reads */
         }
     }
+
+    config_compile_exclude_regex(&conf);
 
     if (conf.print_timing_info)
         time_enable();

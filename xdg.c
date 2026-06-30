@@ -595,10 +595,22 @@ new_id(const char *base_id, const char *new_part)
     return xstrjoin3(base_id, "-", new_part);
 }
 
+static bool
+filename_matches_exclude(const char *filename,
+                         const regex_t *patterns, size_t count)
+{
+	for (size_t i = 0; i < count; i++) {
+		if (regexec(&patterns[i], filename, 0, NULL, 0) == 0)
+			return true;
+	}
+	return false;
+}
+
 static void
 scan_dir(int base_fd, const char *terminal, bool include_actions,
          bool filter_desktop, char_list_t *desktops,
-         application_llist_t *applications, const char *base_id, const char *base_path)
+         application_llist_t *applications, const char *base_id, const char *base_path,
+         const regex_t *match_exclude, size_t match_exclude_count)
 {
     DIR *d = fdopendir(base_fd);
     if (d == NULL) {
@@ -664,7 +676,8 @@ scan_dir(int base_fd, const char *terminal, bool include_actions,
             xsnprintf(nested_base_path, sizeof(nested_base_path), "%s/%s", base_path, e->d_name);
             scan_dir(dir_fd, terminal, include_actions,
                      filter_desktop, desktops,
-                     applications, nested_base_id, nested_base_path);
+                     applications, nested_base_id, nested_base_path,
+                     match_exclude, match_exclude_count);
             free(nested_base_id);
             close(dir_fd);
         } else if (S_ISREG(st.st_mode)) {
@@ -713,6 +726,13 @@ scan_dir(int base_fd, const char *terminal, bool include_actions,
                 }
 
                 if (!already_added) {
+
+                    if (filename_matches_exclude(e->d_name, match_exclude, match_exclude_count)) {
+                        free(id);
+                        close(fd);
+                        continue;
+                    }
+
                     /* Construct full desktop file path */
                     char desktop_file_path[PATH_MAX];
                     xsnprintf(desktop_file_path, sizeof(desktop_file_path), "%s/%s", base_path, e->d_name);
@@ -748,7 +768,8 @@ sort_application_by_title(const void *_a, const void *_b)
 void
 xdg_find_programs(const char *terminal, bool include_actions,
                   bool filter_desktop, char_list_t *desktops,
-                  struct application_list *applications)
+                  struct application_list *applications,
+                  const regex_t *match_exclude, size_t match_exclude_count)
 {
     application_llist_t apps = tll_init();
 
@@ -759,8 +780,8 @@ xdg_find_programs(const char *terminal, bool include_actions,
 
         int fd = open(path, O_RDONLY | O_CLOEXEC);
         if (fd != -1) {
-            scan_dir(fd, terminal, include_actions, filter_desktop, desktops, &apps, NULL, path);
-            close(fd);
+            scan_dir(fd, terminal, include_actions, filter_desktop, desktops, &apps,
+                     NULL, path, match_exclude, match_exclude_count);
         }
     }
 

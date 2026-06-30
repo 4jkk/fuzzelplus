@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <char32.h>
+#include <regex.h>
 
 #include <wlr-layer-shell-unstable-v1.h>
 
@@ -126,6 +127,10 @@ struct config {
 
     char *namespace;
 
+    char **match_exclude;
+    size_t match_exclude_count;
+    regex_t *match_exclude_regex;
+
     struct {
         char32_t character;
         bool enabled;
@@ -244,5 +249,6 @@ bool config_load(
     struct config *conf, const char *path, const config_override_t *overrides,
     bool errors_are_fatal);
 void config_free(struct config *conf);
+void config_compile_exclude_regex(struct config *conf);
 
 struct rgba conf_hex_to_rgba(uint32_t color);
