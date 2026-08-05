@@ -85,6 +85,7 @@ _arguments \
     '--log-colorize[enable or disable colorization of log output on stderr]:logcolor:(never always auto)' \
     '--log-no-syslog[disable syslog logging]' \
     '--no-mouse[disable mouse input]' \
+    '--no-input[disable prompt input]' \
     '--print-timing-info[print timing information, to help debug performance issues]' \
     '--scaling-filter[filter to use when down scaling PNGs]:scaling-filter:(none nearest bilinear box linear cubic lanczos2 lanczos3 lanczos3-stretched)'
 
