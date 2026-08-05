@@ -972,7 +972,9 @@ render_prompt(struct render *render, struct buffer *buf,
      * cursor will be rendered by the loop below */
     const bool is_hidden_pwd =
         conf->password_mode.enabled && conf->password_mode.character == U'\0';
-    if (cursor_location == render->input_glyph_offset || is_hidden_pwd) {
+
+    const bool show_cursor = cursor_location == render->input_glyph_offset || is_hidden_pwd;
+    if (conf->enable_input && show_cursor) {
         update_cursor_rect(render, x, y);
         if (have_preedit && !is_hidden_pwd) {
             x = render_preedit_at_cursor(

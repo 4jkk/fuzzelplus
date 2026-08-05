@@ -778,17 +778,19 @@ execute_binding(struct seat *seat, const struct key_binding *binding, bool *refr
 
         prompt_erase_all(wayl->prompt);
 
-        if (wayl->conf->dmenu.enabled) {
-            char *chars = ac32tombs(match->application->title);
-            if (chars != NULL) {
+        if (wayl->conf->enable_input) {
+            if (wayl->conf->dmenu.enabled) {
+                char *chars = ac32tombs(match->application->title);
+                if (chars != NULL) {
+                    prompt_insert_chars(wayl->prompt, chars, strlen(chars));
+                    *refresh = true;
+                    free(chars);
+                }
+            } else if (match->application->exec != NULL) {
+                const char *chars = match->application->exec;
                 prompt_insert_chars(wayl->prompt, chars, strlen(chars));
                 *refresh = true;
-                free(chars);
             }
-        } else if (match->application->exec != NULL) {
-            const char *chars = match->application->exec;
-            prompt_insert_chars(wayl->prompt, chars, strlen(chars));
-            *refresh = true;
         }
 
         if (*refresh)
@@ -1067,6 +1069,9 @@ keyboard_key(void *data, struct wl_keyboard *wl_keyboard, uint32_t serial,
     }
 
     if (count == 0)
+        return;
+
+    if (!wayl->conf->enable_input)
         return;
 
     prompt_insert_chars(wayl->prompt, buf, count);
@@ -1702,7 +1707,8 @@ text_input_done(void *data, struct zwp_text_input_v3 *text_input,
     bool did_commit = false;
     if (seat->ime.commit_pending != NULL) {
         const char *text = seat->ime.commit_pending;
-        prompt_insert_chars(wayl->prompt, text, strlen(text));
+        if (wayl->conf->enable_input)
+            prompt_insert_chars(wayl->prompt, text, strlen(text));
         free(seat->ime.commit_pending);
         seat->ime.commit_pending = NULL;
         matches_update_incremental(wayl->matches);
@@ -3536,7 +3542,8 @@ wayl_update_cache(const struct wayland *wayl)
 void
 wayl_clipboard_data(struct wayland *wayl, char *data, size_t size)
 {
-    prompt_insert_chars(wayl->prompt, data, size);
+    if (wayl->conf->enable_input)
+        prompt_insert_chars(wayl->prompt, data, size);
 }
 
 void

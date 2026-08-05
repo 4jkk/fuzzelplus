@@ -236,6 +236,7 @@ struct config {
     bool print_timing_info;
 
     bool enable_mouse;
+    bool enable_input;
 };
 
 typedef tll(char *) config_override_t;

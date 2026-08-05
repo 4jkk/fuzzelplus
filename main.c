@@ -466,6 +466,7 @@ print_usage(const char *prog_name)
            "     --print-timing-info         print timing information, to help debug\n"
            "                                 performance issues\n"
            "     --no-mouse                  disable mouse input\n"
+           "     --no-input                  disable prompt input\n"
            "  -v,--version                   show the version number and quit\n");
 
     printf("\n");
@@ -872,6 +873,7 @@ main(int argc, char *const *argv)
     #define OPT_DMENU_MESSAGE_MODE           312
     #define OPT_MESSAGE_COLOR                313
     #define OPT_GENERIC_OVERRIDE             314
+    #define OPT_NO_INPUT                     315
 
     static const struct option longopts[] = {
         {"config",               required_argument, 0, OPT_CONFIG},
@@ -943,6 +945,7 @@ main(int argc, char *const *argv)
         {"scaling-filter",       required_argument, 0, OPT_SCALING_FILTER},
         {"auto-select",          no_argument,       0, OPT_AUTO_SELECT},
         {"no-mouse",             no_argument,       0, OPT_NO_MOUSE},
+        {"no-input",             no_argument,       0, OPT_NO_INPUT},
 
         /* dmenu mode */
         {"dmenu",                no_argument,       0, 'd'},
@@ -1043,6 +1046,7 @@ main(int argc, char *const *argv)
         bool print_timing_info_set:1;
         bool scaling_filter_set:1;
         bool no_mouse_set:1;
+        bool no_input_set:1;
     } cmdline_overrides = {{0}};
 
     setlocale(LC_CTYPE, "");
@@ -1990,6 +1994,11 @@ main(int argc, char *const *argv)
             tll_push_back(generic_overrides, strdup(optarg));
             break;
 
+        case OPT_NO_INPUT:
+            cmdline_overrides.conf.enable_input = false;
+            cmdline_overrides.no_input_set = true;
+            break;
+
         case 'v':
             printf("fuzzel %s\n", version_and_features());
             return EXIT_SUCCESS;
@@ -2230,6 +2239,8 @@ main(int argc, char *const *argv)
         conf.auto_select = cmdline_overrides.conf.auto_select;
     if (cmdline_overrides.no_mouse_set)
         conf.enable_mouse = cmdline_overrides.conf.enable_mouse;
+    if (cmdline_overrides.no_input_set)
+        conf.enable_input = cmdline_overrides.conf.enable_input;
 
     if (conf.dmenu.enabled) {
         /* We don't have any meta data in dmenu mode */
