@@ -38,11 +38,14 @@
 
 * `--override` command line option, allowing you to override **all**
   options available in `fuzzel.ini` ([#759][759]).
+* `--no-input` command line option, allowing you to disable prompt
+  input ([#621][621]).
 * IME support, via the `text-input-unstable-v3` Wayland protocol
   ([#615][614]).
 * Support for the `TryExec` key in `.desktop` files ([#723][723]).
 
 [759]: https://codeberg.org/dnkl/fuzzel/issues/759
+[621]: https://codeberg.org/dnkl/fuzzel/issues/621
 [615]: https://codeberg.org/dnkl/fuzzel/issues/615
 [723]: https://codeberg.org/dnkl/fuzzel/issues/723
 

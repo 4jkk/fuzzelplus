@@ -455,6 +455,10 @@ commented out will usually be installed to */etc/xdg/fuzzel/fuzzel.ini*.
 	Boolean. Enable mouse input.
 	Default: _yes_.
 
+*enable-input*
+	Boolean. Enable prompt input.
+	Default: _yes_.
+
 # SECTION: colors
 
 All color values are in RGBA.

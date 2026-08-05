@@ -619,6 +619,9 @@ Many things can be configured with *fuzzel.ini*(5) or command line options:
 *--no-mouse*
 	Disable mouse input.
 
+*--no-input*
+	Disable prompt input.
+
 *-v*,*--version*
 	Show the version number and quit
 
