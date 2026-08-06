@@ -40,6 +40,13 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* dmenu mode: `--index` returning an index one (or more) lower than
+  the selected entry's actual position in the input whenever an
+  earlier entry in the input was dropped for being unusable (e.g.
+  invalid multibyte data), silently executing the wrong entry.
+
+
 ### Security
 ### Contributors
 

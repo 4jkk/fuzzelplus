@@ -163,8 +163,21 @@ dmenu_load_entries(struct application_list *applications, char delim,
             memmove(buffer, delim_at + 1, size - consume);
             size -= consume;
 
+            /*
+             * Every delimited chunk of stdin -- valid or not -- occupies one
+             * ordinal position in the original input, and --index promises
+             * to return that original position. The counter must therefore
+             * advance here even when the entry itself is dropped for being
+             * unusable (e.g. invalid multibyte data, such as an upstream
+             * producer truncating a line mid UTF-8 sequence). Skipping the
+             * increment on this path silently shifts the index of every
+             * subsequent entry by one for each dropped entry, so an
+             * unrelated later item gets selected/executed instead of the
+             * one the user actually picked.
+             */
             if (wline == NULL) {
                 free(icon_name);
+                app_idx++;
                 continue;
             }
 
