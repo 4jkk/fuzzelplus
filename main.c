@@ -87,6 +87,41 @@ struct cache_entry {
     size_t count;
 };
 
+static bool
+mkdir_p(const char *path, mode_t mode)
+{
+    char tmp[strlen(path) + 1];
+    strcpy(tmp, path);
+
+    for (char *p = tmp + 1; *p != '\0'; p++) {
+        if (*p == '/') {
+            *p = '\0';
+            if (mkdir(tmp, mode) != 0 && errno != EEXIST)
+                return false;
+            *p = '/';
+        }
+    }
+
+    return mkdir(tmp, mode) == 0 || errno == EEXIST;
+}
+
+static void
+ensure_parent_dir(const char *file_path)
+{
+    /* libgen.h's dirname() may modify the input, so duplicate it. */
+    char *path_copy = xstrdup(file_path);
+    char *parent = dirname(path_copy);
+
+    if (strcmp(parent, ".") == 0)
+        goto done;  /* No parent directory to create */
+
+    if (!mkdir_p(parent, 0755))
+        LOG_ERRNO("%s: failed to create parent directory", parent);
+
+done:
+    free(path_copy);
+}
+
 static void
 read_cache(const char *path, struct application_list *apps, bool dmenu)
 {
@@ -245,6 +280,7 @@ write_cache(const char *path, const struct application_list *apps, bool dmenu)
         }
         close(cache_dir_fd);
     } else {
+        ensure_parent_dir(path);
         if ((fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644)) == -1) {
             LOG_ERRNO("%s: failed to open", path);
             return;
