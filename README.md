@@ -148,6 +148,15 @@ Once installed, the tests can be run with:
 
     fishtape test/*.fish
 
+# No AI / LLM policy
+
+Use of generative AI/LLMs is strictly forbidden for **all**
+contributions to fuzzel.
+
+This includes bug reports and comments on the issue and pull request
+trackers.
+
+
 ## License
 
 Fuzzel is released under the [MIT license](LICENSE).
