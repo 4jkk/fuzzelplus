@@ -33,7 +33,6 @@
 * [1.4.2](#1-4-2)
 * [1.4.1](#1-4-1)
 
-
 ## Unreleased
 ### Added
 ### Changed
@@ -46,10 +45,15 @@
   earlier entry in the input was dropped for being unusable (e.g.
   invalid multibyte data), silently executing the wrong entry.
 
+* Fixed sorting on musl-based systemd ([#782][782],[#783][783])
+
+[782]: https://codeberg.org/dnkl/fuzzel/issues/782
+[783]: https://codeberg.org/dnkl/fuzzel/issues/783
 
 ### Security
 ### Contributors
 
+ * Mark Stosberg
 
 ## 1.15.0
 
