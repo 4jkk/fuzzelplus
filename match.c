@@ -846,7 +846,8 @@ match_compar(const void *_a, const void *_b)
     else if (a->pos_count > 0 && b->pos_count > 0 &&
              a->application->title != NULL && b->application->title != NULL)
     {
-        return a->application->title_len > b->application->title_len;
+        return (a->application->title_len > b->application->title_len)
+             - (a->application->title_len < b->application->title_len);
     } else
         return 0;
 }
