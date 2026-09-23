@@ -1045,7 +1045,27 @@ keyboard_key(void *data, struct wl_keyboard *wl_keyboard, uint32_t serial,
         }
     }
 
-    if ((mods & ~consumed) != 0)
+    xkb_mod_mask_t unconsumed = mods & ~consumed;
+
+    /*
+     * Most layouts inherit the one-level <SPCE> definition from pc(pc),
+     * so XKB never reports shift as consumed for the space key, and the
+     * event would be dropped despite resolving to a printable space.
+     *
+     * Layouts that do define shifted levels on <SPCE> consume shift
+     * themselves, making this a no-op, and those that map shift+space to
+     * something else (e.g. fr(bepo), or any layout with nbsp:level2)
+     * resolve to a different keysym and never reach here.
+     */
+    if (sym == XKB_KEY_space || sym == XKB_KEY_KP_Space) {
+        xkb_mod_index_t shift = xkb_keymap_mod_get_index(
+            seat->kbd.xkb_keymap, XKB_MOD_NAME_SHIFT);
+
+        if (shift != XKB_MOD_INVALID)
+            unconsumed &= ~(1u << shift);
+    }
+
+    if (unconsumed != 0)
         goto maybe_repeat;
 
     /*

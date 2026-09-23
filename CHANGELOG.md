@@ -45,6 +45,9 @@
   the selected entry's actual position in the input whenever an
   earlier entry in the input was dropped for being unusable (e.g.
   invalid multibyte data), silently executing the wrong entry.
+* Space+Shift producing no output ([#788][788]).
+
+[788]: https://codeberg.org/dnkl/fuzzel/issues/788
 
 
 ### Security
