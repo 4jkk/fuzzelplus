@@ -8,7 +8,7 @@
 
 size_t c32len(const char32_t *s) PURE;
 int c32cmp(const char32_t *s1, const char32_t *s2);
-int c32casecmp(const char32_t *s1, const char32_t *s2);
+int c32coll(const char32_t *s1, const char32_t *s2);
 char32_t *c32cpy(char32_t *dest, const char32_t *src);
 char32_t *c32memcpy(char32_t *dest, const char32_t *src, size_t n);
 char32_t *c32cat(char32_t *dest, const char32_t *src);

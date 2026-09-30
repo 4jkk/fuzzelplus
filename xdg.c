@@ -742,7 +742,7 @@ sort_application_by_title(const void *_a, const void *_b)
 {
     const struct application *const *a = _a;
     const struct application *const *b = _b;
-    return c32casecmp((*a)->title, (*b)->title);
+    return c32coll((*a)->title, (*b)->title);
 }
 
 void

@@ -49,9 +49,9 @@ c32cmp(const char32_t *s1, const char32_t *s2)
 }
 
 int
-c32casecmp(const char32_t *s1, const char32_t *s2)
+c32coll(const char32_t *s1, const char32_t *s2)
 {
-    return wcscasecmp((const wchar_t *)s1, (const wchar_t *)s2);
+    return wcscoll((const wchar_t *)s1, (const wchar_t *)s2);
 }
 
 char32_t *

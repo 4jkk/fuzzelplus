@@ -1045,6 +1045,7 @@ main(int argc, char *const *argv)
         bool no_mouse_set:1;
     } cmdline_overrides = {{0}};
 
+    setlocale(LC_COLLATE, "");
     setlocale(LC_CTYPE, "");
     setlocale(LC_MESSAGES, "");
 
