@@ -46,8 +46,10 @@
   earlier entry in the input was dropped for being unusable (e.g.
   invalid multibyte data), silently executing the wrong entry.
 * Space+Shift producing no output ([#788][788]).
+* Regression: mouse scrolling not working properly ([#790][790]).
 
 [788]: https://codeberg.org/dnkl/fuzzel/issues/788
+[790]: https://codeberg.org/dnkl/fuzzel/issues/790
 
 
 ### Security

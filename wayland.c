@@ -1325,7 +1325,7 @@ wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
     }
 
     if (refresh)
-        select_hovered_match(seat, true);
+        wayl_refresh(wayl);
 }
 
 static void
@@ -1365,7 +1365,7 @@ wl_pointer_axis_discrete(void *data, struct wl_pointer *wl_pointer,
     }
 
     if (refresh)
-        select_hovered_match(seat, true);
+        wayl_refresh(wayl);
 }
 
 static const struct wl_pointer_listener pointer_listener = {
