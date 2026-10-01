@@ -1283,6 +1283,9 @@ wl_pointer_axis(void *data, struct wl_pointer *wl_pointer,
     if (!wayl->enable_mouse)
         return;
 
+    if (seat->pointer.discrete_used)
+        return;
+
     if (axis != WL_POINTER_AXIS_VERTICAL_SCROLL)
         return;
 
