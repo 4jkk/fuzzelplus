@@ -10,6 +10,8 @@ body:
 
         Don't forget to search the issue tracker in case there is
         already an open issue for the bug you found.
+
+        **No generative AI / LLM generated issues!**
   - type: input
     id: version
     attributes:

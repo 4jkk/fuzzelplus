@@ -164,116 +164,116 @@ application_execute(const struct application *app, const struct prompt *prompt,
     char *execute_dest;
     size_t execute_len = strlen(execute);
     if (launch_prefix != NULL) {
-      size_t launch_len = strlen(launch_prefix);
-      unescaped = xmalloc(launch_len + execute_len + 2 /* whitespace + null terminator */);
-      memcpy(unescaped, launch_prefix, launch_len);
-      unescaped[launch_len] = ' ';
-      execute_dest = unescaped + launch_len + 1;
+        size_t launch_len = strlen(launch_prefix);
+        unescaped = xmalloc(launch_len + execute_len + 2 /* whitespace + null terminator */);
+        memcpy(unescaped, launch_prefix, launch_len);
+        unescaped[launch_len] = ' ';
+        execute_dest = unescaped + launch_len + 1;
 
-      if (id != NULL) {
-          setenv("DESKTOP_ENTRY_ID", id, 1);
-          /* Keep FUZZEL_DESKTOP_FILE_ID for backward compatibility */
-          setenv("FUZZEL_DESKTOP_FILE_ID", id, 1);
-      } else {
-          LOG_WARN("No Desktop File ID, not setting DESKTOP_ENTRY_ID");
-      }
+        if (id != NULL) {
+            setenv("DESKTOP_ENTRY_ID", id, 1);
+            /* Keep FUZZEL_DESKTOP_FILE_ID for backward compatibility */
+            setenv("FUZZEL_DESKTOP_FILE_ID", id, 1);
+        } else {
+            LOG_WARN("No Desktop File ID, not setting DESKTOP_ENTRY_ID");
+        }
 
-      if (app != NULL) {
-          if (app->desktop_file_path != NULL) {
-              setenv("DESKTOP_ENTRY_PATH", app->desktop_file_path, 1);
-          }
+        if (app != NULL) {
+            if (app->desktop_file_path != NULL) {
+                setenv("DESKTOP_ENTRY_PATH", app->desktop_file_path, 1);
+            }
 
-          if (app->action_id != NULL) {
-              setenv("DESKTOP_ENTRY_ACTION", app->action_id, 1);
-          }
+            if (app->action_id != NULL) {
+                setenv("DESKTOP_ENTRY_ACTION", app->action_id, 1);
+            }
 
-          if (app->original_name != NULL) {
-              char *name_utf8 = ac32tombs(app->original_name);
-              setenv("DESKTOP_ENTRY_NAME", name_utf8, 1);
-              free(name_utf8);
-          }
+            if (app->original_name != NULL) {
+                char *name_utf8 = ac32tombs(app->original_name);
+                setenv("DESKTOP_ENTRY_NAME", name_utf8, 1);
+                free(name_utf8);
+            }
 
-          if (app->localized_name != NULL) {
-              char *localized_name_utf8 = ac32tombs(app->localized_name);
-              setenv("DESKTOP_ENTRY_NAME_L", localized_name_utf8, 1);
-              free(localized_name_utf8);
-          }
+            if (app->localized_name != NULL) {
+                char *localized_name_utf8 = ac32tombs(app->localized_name);
+                setenv("DESKTOP_ENTRY_NAME_L", localized_name_utf8, 1);
+                free(localized_name_utf8);
+            }
 
-          if (app->comment != NULL) {
-              char *comment_utf8 = ac32tombs(app->comment);
-              setenv("DESKTOP_ENTRY_COMMENT", comment_utf8, 1);
-              setenv("DESKTOP_ENTRY_COMMENT_L", comment_utf8, 1); /* TODO: distinguish localized */
-              free(comment_utf8);
-          }
+            if (app->comment != NULL) {
+                char *comment_utf8 = ac32tombs(app->comment);
+                setenv("DESKTOP_ENTRY_COMMENT", comment_utf8, 1);
+                setenv("DESKTOP_ENTRY_COMMENT_L", comment_utf8, 1); /* TODO: distinguish localized */
+                free(comment_utf8);
+            }
 
-          if (app->icon.name != NULL) {
-              setenv("DESKTOP_ENTRY_ICON", app->icon.name, 1);
-          }
+            if (app->icon.name != NULL) {
+                setenv("DESKTOP_ENTRY_ICON", app->icon.name, 1);
+            }
 
-          if (app->original_generic_name != NULL) {
-              char *generic_name_utf8 = ac32tombs(app->original_generic_name);
-              setenv("DESKTOP_ENTRY_GENERICNAME", generic_name_utf8, 1);
-              free(generic_name_utf8);
-          }
+            if (app->original_generic_name != NULL) {
+                char *generic_name_utf8 = ac32tombs(app->original_generic_name);
+                setenv("DESKTOP_ENTRY_GENERICNAME", generic_name_utf8, 1);
+                free(generic_name_utf8);
+            }
 
-          if (app->localized_generic_name != NULL) {
-              char *localized_generic_name_utf8 = ac32tombs(app->localized_generic_name);
-              setenv("DESKTOP_ENTRY_GENERICNAME_L", localized_generic_name_utf8, 1);
-              free(localized_generic_name_utf8);
-          }
+            if (app->localized_generic_name != NULL) {
+                char *localized_generic_name_utf8 = ac32tombs(app->localized_generic_name);
+                setenv("DESKTOP_ENTRY_GENERICNAME_L", localized_generic_name_utf8, 1);
+                free(localized_generic_name_utf8);
+            }
 
-          if (app->action_name != NULL) {
-              char *action_name_utf8 = ac32tombs(app->action_name);
-              setenv("DESKTOP_ENTRY_ACTION_NAME", action_name_utf8, 1);
-              free(action_name_utf8);
-          }
+            if (app->action_name != NULL) {
+                char *action_name_utf8 = ac32tombs(app->action_name);
+                setenv("DESKTOP_ENTRY_ACTION_NAME", action_name_utf8, 1);
+                free(action_name_utf8);
+            }
 
-          if (app->localized_action_name != NULL) {
-              char *localized_action_name_utf8 = ac32tombs(app->localized_action_name);
-              setenv("DESKTOP_ENTRY_ACTION_NAME_L", localized_action_name_utf8, 1);
-              free(localized_action_name_utf8);
-          }
+            if (app->localized_action_name != NULL) {
+                char *localized_action_name_utf8 = ac32tombs(app->localized_action_name);
+                setenv("DESKTOP_ENTRY_ACTION_NAME_L", localized_action_name_utf8, 1);
+                free(localized_action_name_utf8);
+            }
 
-          if (app->action_id != NULL && app->icon.name != NULL) {
-              setenv("DESKTOP_ENTRY_ACTION_ICON", app->icon.name, 1);
-          }
-      }
+            if (app->action_id != NULL && app->icon.name != NULL) {
+                setenv("DESKTOP_ENTRY_ACTION_ICON", app->icon.name, 1);
+            }
+        }
     } else {
-      unescaped = xmalloc(execute_len + 1);
-      execute_dest = unescaped;
+        unescaped = xmalloc(execute_len + 1);
+        execute_dest = unescaped;
     }
 
     /* Substitute escape sequences for their literal character values */
     for (size_t i = 0; i <= execute_len /* so null terminator is copied */; i++, execute_dest++) {
-      if (execute[i] != '\\') {
-        *execute_dest = execute[i];
-      } else {
-        i++;
-        switch(execute[i]) {
-          case 's':
-            *execute_dest = ' ';
-            break;
-          case 'n':
-            *execute_dest = '\n';
-            break;
-          case 't':
-            *execute_dest = '\t';
-            break;
-          case 'r':
-            *execute_dest = '\r';
-            break;
-          case ';':
-            *execute_dest = ';';
-            break;
-          case '\\':
-            *execute_dest = '\\';
-            break;
-          default:
-            free(unescaped);
-            LOG_ERR("invalid escaped exec argument character: %c", execute[i]);
-            return false;
+        if (execute[i] != '\\') {
+            *execute_dest = execute[i];
+        } else {
+            i++;
+            switch(execute[i]) {
+            case 's':
+                *execute_dest = ' ';
+                break;
+            case 'n':
+                *execute_dest = '\n';
+                break;
+            case 't':
+                *execute_dest = '\t';
+                break;
+            case 'r':
+                *execute_dest = '\r';
+                break;
+            case ';':
+                *execute_dest = ';';
+                break;
+            case '\\':
+                *execute_dest = '\\';
+                break;
+            default:
+                free(unescaped);
+                LOG_ERR("invalid escaped exec argument character: %c", execute[i]);
+                return false;
+            }
         }
-      }
     }
 
     LOG_INFO("executing %s: \"%s\"", id, unescaped);

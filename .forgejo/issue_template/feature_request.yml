@@ -34,10 +34,11 @@ body:
 
         ## Of Possible Interest
 
-        - Implemeting features from similar tools within our scope.
+        - Implementing features from similar tools within our scope.
 
         Features will be more likely to be accepted if similar tools already support the feature.
 
+        **No generative AI / LLM generated feature requests!**
   - type: textarea
     id: similar
     attributes:

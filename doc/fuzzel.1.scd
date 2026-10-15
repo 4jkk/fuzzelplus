@@ -630,7 +630,7 @@ Directory Specification (see link at bottom), looking in the
 *XDG_DATA_HOME*. By default, these are:
 
 - *~/.local/share/applications*
-- */usr/local/share/applitions*
+- */usr/local/share/applications*
 - */usr/share/application*
 
 See the specification for details.

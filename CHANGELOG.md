@@ -1,6 +1,7 @@
 # Changelog
 
 * [Unreleased](#unreleased)
+* [1.15.0](#1-15-0)
 * [1.14.1](#1-14-1)
 * [1.14.0](#1-14-0)
 * [1.13.1](#1-13-1)
@@ -35,11 +36,32 @@
 
 ## Unreleased
 ### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+
+* dmenu mode: `--index` returning an index one (or more) lower than
+  the selected entry's actual position in the input whenever an
+  earlier entry in the input was dropped for being unusable (e.g.
+  invalid multibyte data), silently executing the wrong entry.
+* Space+Shift producing no output ([#788][788]).
+
+[788]: https://codeberg.org/dnkl/fuzzel/issues/788
+
+
+### Security
+### Contributors
+
+
+## 1.15.0
+
+### Added
 
 * `--override` command line option, allowing you to override **all**
   options available in `fuzzel.ini` ([#759][759]).
 * IME support, via the `text-input-unstable-v3` Wayland protocol
-  ([#615][614]).
+  ([#615][615]).
 * Support for the `TryExec` key in `.desktop` files ([#723][723]).
 
 [759]: https://codeberg.org/dnkl/fuzzel/issues/759
@@ -56,8 +78,6 @@
 [751]: https://codeberg.org/dnkl/fuzzel/issues/751
 
 
-### Deprecated
-### Removed
 ### Fixed
 
 * `image-size-ratio=0` causing a crash due to a zero-size allocation
@@ -70,10 +90,16 @@
 [739]: https://codeberg.org/dnkl/fuzzel/issues/739
 [765]: https://codeberg.org/dnkl/fuzzel/issues/765
 
-### Security
 ### Contributors
 
-* markstos
+* 1nspd
+* korigamik-hypr
+* Mark Stosberg
+* Nicholas Rodrigues Lordello
+* odrling
+* spookyvision
+* vlkrs
+* Woolzie
 
 
 ## 1.14.1
