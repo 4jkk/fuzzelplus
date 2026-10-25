@@ -46,6 +46,7 @@
   earlier entry in the input was dropped for being unusable (e.g.
   invalid multibyte data), silently executing the wrong entry.
 * Space+Shift producing no output ([#788][788]).
+* Nanosvg updated to 239e102ec2c691f2902e20ace2ed36ee4a35cfe6
 
 [788]: https://codeberg.org/dnkl/fuzzel/issues/788
 
